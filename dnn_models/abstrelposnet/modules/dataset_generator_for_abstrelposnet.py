@@ -1,4 +1,3 @@
-from numpy import dtype, float32
 from rosbag import Bag
 from typing import List
 import torch
@@ -46,5 +45,3 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
                 if value < -yaw_th: abst_relative_odom.append(-1)
         
         return abst_relative_odom
-
-

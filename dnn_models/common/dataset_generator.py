@@ -15,7 +15,6 @@ from smartargparse import BaseConfig
 from transformutils import calc_relative_pose, get_array_2d_from_msg
 
 from training_data import TrainingData
-# from .training_data import TrainingData
 
 @dataclass(frozen=True)
 class Config(BaseConfig):
