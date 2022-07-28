@@ -33,18 +33,12 @@ class ReferencePoint:
     pose: Pose
 
 class DatasetGenerator(metaclass=ABCMeta):
-    _config: Config
-    _bag: Bag
-    _reference_points: List[ReferencePoint]
-    _data_count: int
-    _bag_id: int
-
     def __init__(self, config: Config, bag: Bag, bag_id: int=0) -> None:
-        self._config = config
-        self._bag = bag
-        self._reference_points  = []
-        self._data_count = 0
-        self._bag_id = bag_id
+        self._config:Config = config
+        self._bag:Bag = bag
+        self._reference_points: List[ReferencePoint]  = []
+        self._data_count: int = 0
+        self._bag_id: int = bag_id
 
     def __call__(self) -> None:
         self._generate_reference_data()

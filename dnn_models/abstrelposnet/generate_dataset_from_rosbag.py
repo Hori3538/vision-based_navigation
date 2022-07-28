@@ -24,5 +24,5 @@ def main() -> None:
                     for i, bagfile_path in enumerate(iglob(os.path.join(config.bagfiles_dir, "*")))
             )
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()

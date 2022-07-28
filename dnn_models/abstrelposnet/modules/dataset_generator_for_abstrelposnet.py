@@ -23,7 +23,7 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
         images = (self._compressed_image_to_tensor(reference_point1.image),
                 self._compressed_image_to_tensor(reference_point2.image))
 
-        relative_pose = calc_relative_pose(reference_point1.pose, reference_point2)
+        relative_pose = calc_relative_pose(reference_point1.pose, reference_point2.pose)
         relative_odom = get_array_2d_from_msg(relative_pose)
         abst_relative_odom = self._to_abstract(relative_odom)
         label = abst_relative_odom + relative_odom
