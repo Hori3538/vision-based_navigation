@@ -45,8 +45,8 @@ class DatasetGenerator(metaclass=ABCMeta):
         reference_points1 = copy(self._reference_points)
         reference_points2 = copy(self._reference_points)
 
-        for i, reference_point1 in enumerate(reference_points1):
-            for j, reference_point2 in enumerate(reference_points2):
+        for reference_point1 in reference_points1:
+            for reference_point2 in reference_points2:
                 self._generate_data_from_reference_points(reference_point1, reference_point2)
         
 
@@ -66,10 +66,10 @@ class DatasetGenerator(metaclass=ABCMeta):
         for topic, msg, _ in self._bag.read_messages(
                 topics=[self._config.image_topic_name, self._config.odom_topic_name]):
             if topic == self._config.image_topic_name:
-                image = cast(CompressedImage, msg) # ?
+                image = cast(CompressedImage, msg) # Optional[CompressedImage] -> CompressedImage
 
             if topic == self._config.odom_topic_name:
-                odom = cast(Odometry, msg) # ?
+                odom = cast(Odometry, msg) # Optional[Odometry] -> Odometry
                 if initial_odom is None:
                     initial_odom = odom
                 odom = self._calc_relative_odom(initial_odom, odom)

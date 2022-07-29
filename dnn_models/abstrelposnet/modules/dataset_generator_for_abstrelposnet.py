@@ -1,6 +1,7 @@
 from rosbag import Bag
 from typing import List
 import torch
+import numpy as np
 
 from transformutils import (calc_relative_pose, get_array_2d_from_msg)
 
@@ -25,6 +26,12 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
 
         relative_pose = calc_relative_pose(reference_point1.pose, reference_point2.pose)
         relative_odom = get_array_2d_from_msg(relative_pose)
+
+        dist_gap = np.linalg.norm(relative_odom[:2])
+        yaw_gap = abs(relative_odom[2])
+        if dist_gap > self._config.dist_gap_th or yaw_gap > self._config.yaw_gap_th:
+            return 
+
         abst_relative_odom = self._to_abstract(relative_odom)
         label = abst_relative_odom + relative_odom
 
@@ -36,12 +43,12 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
             if i != 2:
                 dist_th = self._config.dist_labelling_th
                 if value > dist_th: abst_relative_odom.append(1)
-                if -dist_th <= value <= dist_th: abst_relative_odom.append((0))
-                if value < -dist_th: abst_relative_odom.append(-1)
+                elif value < -dist_th: abst_relative_odom.append(-1)
+                else: abst_relative_odom.append((0))
             else:
                 yaw_th = self._config.yaw_labelling_th
                 if value > yaw_th: abst_relative_odom.append(1)
-                if -yaw_th <= value <= yaw_th: abst_relative_odom.append((0))
-                if value < -yaw_th: abst_relative_odom.append(-1)
+                elif value < -yaw_th: abst_relative_odom.append(-1)
+                else: abst_relative_odom.append((0))
         
         return abst_relative_odom
