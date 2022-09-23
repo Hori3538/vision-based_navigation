@@ -9,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from model import AbstRelPosNet
-from dataset import DatasetForAbstRelPosNet
+from modules.dataset import DatasetForAbstRelPosNet
 from loss_func import AbstPoseLoss
 
 def main():
@@ -27,8 +27,8 @@ def main():
     parser.add_argument("-w", "--num-workers", type=int, default=0)
     parser.add_argument("-e", "--num-epochs", type=int, default=10)
     parser.add_argument("-a", "--beta", type=int, default=1.0)
-    parser.add_argument("-i", "--weight-name", type=str, default="./weight")
-    parser.add_argument("-o", "--log-name", type=str, default="./logs")
+    parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
+    parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
     args = parser.parse_args()
 
@@ -80,8 +80,11 @@ def main():
             epoch_train_loss = 0.0
             for data in train_loader:
                 optimizer.zero_grad()
-                train_output = model(data["src_image"].to(device), data["dst_image"].to(device))
-                train_loss = criterion(train_output, data["label"].to(device))
+
+                src_image, dst_image, label = data
+                abst_pose = label.clone().detach()[0, :3]
+                train_output = model(src_image.to(device), dst_image.to(device))
+                train_loss = criterion(train_output, abst_pose.to(device))
                 epoch_train_loss += train_loss
                 train_loss.backward()
                 optimizer.step()
@@ -93,8 +96,10 @@ def main():
         with torch.no_grad():
             epoch_valid_loss = 0.0
             for data in valid_loader:
-                valid_output = model(data["src_image"].to(device), data["dst_image"].to(device))
-                valid_loss = criterion(valid_output, data["label"].to(device))
+                src_image, dst_image, label = data
+                abst_pose = label.clone().detach()[0, :3]
+                valid_output = model(src_image.to(device), dst_image.to(device))
+                valid_loss = criterion(valid_output, abst_pose.to(device))
                 epoch_valid_loss += valid_loss
         epoch_valid_loss /= len(valid_loader)
         writer.add_scalar("loss/valid", epoch_valid_loss, epoch)

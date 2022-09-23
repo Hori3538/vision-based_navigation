@@ -1,13 +1,16 @@
 from torch.utils.data import Dataset
 from glob import iglob
 import os
-from typing import List
+from typing import List, Tuple
 import torch
 import torch.nn as nn
 
 import sys
 sys.path.append("../../common")
+sys.path.append("../common")
 from training_data import TrainingData
+# sys.path.append("../..")
+# from common.training_data import TrainingData
 
 class DatasetForAbstRelPosNet(Dataset):
     def __init__(self, dataset_dir: str, use_transform: bool = True) -> None:
@@ -23,7 +26,7 @@ class DatasetForAbstRelPosNet(Dataset):
     def __len__(self) -> int:
         return len(self._data_path)
 
-    def __getitem__(self, idx: int) -> List[torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, ...]:
         data: TrainingData = torch.load(self._data_path[idx])
         src, dst, label = (
                     (data.src_image/255).permute(2, 0, 1),
@@ -33,7 +36,7 @@ class DatasetForAbstRelPosNet(Dataset):
         if self._use_transform:
             src, dst = self._transform(src), self._transform(dst)
 
-        return [src, dst, label]
+        return src, dst, label
 
 def test() -> None:
     from argparse import ArgumentParser
@@ -49,9 +52,10 @@ def test() -> None:
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
     for batch in dataloader:
-        print(f"type of batch: {type(batch)}")
+        print(type(batch[0]))
+        print(f"len batch: {len(batch)}")
+        print(f"shape: {batch[0].shape}")
         data = TrainingData(*batch)
-        print(f"type of data: {type(data)}")
         image_tensor = torch.cat((data.src_image, data.dst_image), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
         print(f"label: {data.label}")
