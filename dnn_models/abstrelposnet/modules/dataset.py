@@ -49,17 +49,31 @@ def test() -> None:
     args = parser.parse_args()
 
     dataset = DatasetForAbstRelPosNet(args.dataset_dir)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=200, shuffle=True, drop_last=True)
+
+    print(f"data len: {dataset.__len__()}")
+    label_count_minus = torch.tensor([0] * 3)
+    label_count_same = torch.tensor([0] * 3)
+    label_count_plus = torch.tensor([0] * 3)
 
     for batch in dataloader:
-        print(type(batch[0]))
-        print(f"len batch: {len(batch)}")
-        print(f"shape: {batch[0].shape}")
         data = TrainingData(*batch)
-        image_tensor = torch.cat((data.src_image, data.dst_image), dim=2).squeeze()
+        label = data.label
+
+        label_count_minus += torch.sum(label == -1, 0)[:3]
+        label_count_same += torch.sum(label == 0, 0)[:3]
+        label_count_plus += torch.sum(label == 1, 0)[:3]
+
+    print(f"x_label_count -1: {label_count_minus[0]}, 0: {label_count_same[0]}, 1: {label_count_plus[0]}")
+    print(f"y_label_count -1: {label_count_minus[1]}, 0: {label_count_same[1]}, 1: {label_count_plus[1]}")
+    print(f"x_label_count -1: {label_count_minus[2]}, 0: {label_count_same[2]}, 1: {label_count_plus[2]}")
+
+    for batch in dataloader:
+        data = TrainingData(*batch)
+        image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
-        print(f"label: {data.label}")
         cv2.imshow("images", image)
+        print(f"label: {data.label[0]}")
         key = cv2.waitKey(0)
         if key == ord("q") or key == ord("c"):
             break
