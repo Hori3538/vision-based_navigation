@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 
 import torch
-from torch import optim
+from torch import inf, optim
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -25,7 +25,7 @@ def main():
     parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=32)
     parser.add_argument("-w", "--num-workers", type=int, default=0)
-    parser.add_argument("-e", "--num-epochs", type=int, default=10)
+    parser.add_argument("-e", "--num-epochs", type=int, default=50)
     parser.add_argument("-a", "--beta", type=int, default=1.0)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
@@ -52,7 +52,7 @@ def main():
     criterion = AbstPoseLoss(args.beta, device)
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     scheduler = optim.lr_scheduler.CyclicLR(
-                optimizer, base_lr=args.lr_min, max_lr=args.lr_max, step_size_up=25, mode="triangular", cycle_momentum=False
+                optimizer, base_lr=args.lr_min, max_lr=args.lr_max, step_size_up=10, mode="triangular", cycle_momentum=False
             )
 
     dataset = DatasetForAbstRelPosNet(args.dataset_dir)
@@ -71,6 +71,7 @@ def main():
 
     writer = SummaryWriter(log_dir = log_dir)
 
+    best_loss = float('inf')
     for epoch in range(args.num_epochs):
         model.train()
 
@@ -106,10 +107,13 @@ def main():
 
         scheduler.step()
 
-        if (epoch + 1) % 5 == 0:
-            model_path = os.path.join(weight_dir, f"epoch_{epoch}.pt")
+        if best_loss > epoch_valid_loss:
+            model_path = os.path.join(weight_dir, f"best_loss.pt")
             torch.save(model.state_dict(), model_path)
-        print(f"epoch {epoch} finished. train loss: {epoch_train_loss}, valid loss: {epoch_valid_loss}")
+            best_loss = epoch_valid_loss
+            print(f"best_loss: {best_loss:.3f}")
+
+        print(f"epoch {epoch} finished. train loss: {epoch_train_loss:.3f}, valid loss: {epoch_valid_loss:.3f}")
     
     writer.close()
     print("==Finished Training==")
