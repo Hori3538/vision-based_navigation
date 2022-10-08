@@ -23,7 +23,7 @@ class AbstRelPosNet(nn.Module):
 
     def forward(self, input1, input2):
         x1 = self.efficient1(input1)
-        x2 = self.efficient1(input1)
+        x2 = self.efficient2(input2)
         x = torch.cat((x1, x2), dim=1)
 
         return self.fc_layers(x)
