@@ -83,7 +83,7 @@ def main():
                 optimizer.zero_grad()
 
                 src_image, dst_image, label = data
-                abst_pose = label.clone().detach()[0, :3]
+                abst_pose = label[:, :3]
                 train_output = model(src_image.to(device), dst_image.to(device))
                 train_loss = criterion(train_output, abst_pose.to(device))
                 epoch_train_loss += train_loss
@@ -96,12 +96,26 @@ def main():
         model.eval()
         with torch.no_grad():
             epoch_valid_loss = 0.0
+            correct_count = torch.tensor([0]*3)
+            complete_correct_count = 0
             for data in valid_loader:
                 src_image, dst_image, label = data
-                abst_pose = label.clone().detach()[0, :3]
+                abst_pose = label[:, :3]
                 valid_output = model(src_image.to(device), dst_image.to(device))
+                discretization_func = lambda n: -1 if n < -0.5 else(1 if n > 0.5 else 0)
+                descretized_output = valid_output.detach().cpu().apply_(discretization_func)
+
+                judge_tensor = abst_pose == descretized_output
+                correct_count += torch.sum(judge_tensor, 0) 
+                complete_correct_count += torch.sum(torch.sum(judge_tensor, 1) == 3) 
+
                 valid_loss = criterion(valid_output, abst_pose.to(device))
                 epoch_valid_loss += valid_loss
+            data_count = valid_dataset.__len__() // args.batch_size * args.batch_size
+            label_accuracy = correct_count / data_count
+            label_complete_accuracy = complete_correct_count / data_count
+            print(f"label accuracy ... x: {label_accuracy[0]:.3f}, y: {label_accuracy[1]:.3f}, yaw: {label_accuracy[2]:.3f}")
+            print(f"complete label accuracy: {label_complete_accuracy:.3f}")
         epoch_valid_loss /= len(valid_loader)
         writer.add_scalar("loss/valid", epoch_valid_loss, epoch)
 
