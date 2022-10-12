@@ -1,0 +1,92 @@
+import argparse
+
+import torch
+from torch.utils.data import DataLoader
+import cv2
+import numpy as np
+
+from model import AbstRelPosNet
+from modules.dataset import DatasetForAbstRelPosNet
+from loss_func import AbstPoseLoss
+
+def main():
+    print("=== test start ==")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset-dir", type=str)
+    parser.add_argument("--weight-path", type=str)
+    parser.add_argument("--beta", type=float, default=1.0)
+    args = parser.parse_args()
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    model = AbstRelPosNet().to(device)
+    model.load_state_dict(torch.load(args.weight_path))
+    model.eval()
+    criterion = AbstPoseLoss(args.beta, device)
+
+    test_dataset = DatasetForAbstRelPosNet(args.dataset_dir)
+    test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
+
+    data_num = test_dataset.__len__()
+    print(f"data num: {data_num}")
+    label_count_minus = torch.tensor([0] * 3)
+    label_count_same = torch.tensor([0] * 3)
+    label_count_plus = torch.tensor([0] * 3)
+
+    with torch.no_grad():
+        correct_count = torch.tensor([0]*3)
+        complete_correct_count = 0
+        for data in test_loader:
+            src_image, dst_image, label = data
+            abst_pose = label[:, :3]
+            concrete_pose = label[:, 3:]
+
+            label_count_minus += torch.sum(label == -1, 0)[:3]
+            label_count_same += torch.sum(label == 0, 0)[:3]
+            label_count_plus += torch.sum(label == 1, 0)[:3]
+
+            test_output = model(src_image.to(device), dst_image.to(device))
+            discretization_func = lambda n: -1 if n < -0.5 else(1 if n > 0.5 else 0)
+            descretized_output = test_output.detach().cpu().apply_(discretization_func)
+
+            judge_tensor = abst_pose == descretized_output
+            correct_count += torch.sum(judge_tensor, 0) 
+            complete_correct_count += torch.sum(torch.sum(judge_tensor, 1) == 3) 
+
+        print(f"x_label_rate -1: {label_count_minus[0] / data_num * 100:.3f}, 0: {label_count_same[0] / data_num * 100:.3f}, 1: {label_count_plus[0] / data_num * 100:.3f}")
+        print(f"y_label_rate -1: {label_count_minus[1] / data_num * 100:.3f}, 0: {label_count_same[1] / data_num * 100:.3f}, 1: {label_count_plus[1] / data_num * 100:.3f}")
+        print(f"yaw_label_rate -1: {label_count_minus[2] / data_num * 100:.3f}, 0: {label_count_same[2] / data_num * 100:.3f}, 1: {label_count_plus[2] / data_num * 100:.3f}")
+
+        label_accuracy = correct_count / data_num
+        label_complete_accuracy = complete_correct_count / data_num
+        print(f"label accuracy ... x: {label_accuracy[0]:.3f}, y: {label_accuracy[1]:.3f}, yaw: {label_accuracy[2]:.3f}")
+        print(f"complete label accuracy: {label_complete_accuracy:.3f}")
+
+
+
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, drop_last=False)
+    with torch.no_grad():
+        for data in test_loader:
+            src_image, dst_image, label = data
+            abst_pose = label[:, :3]
+            concrete_pose = label[:, 3:]
+
+            test_output = model(src_image.to(device), dst_image.to(device))[0]
+
+            
+            print(f"concrete_pose: {concrete_pose}")
+            print(f"abst_pose: {abst_pose}")
+            print(f"model's_output: {test_output}/n")
+
+            image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()
+            image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
+            cv2.imshow("images", image)
+            key = cv2.waitKey(0)
+            if key == ord("q") or key == ord("c"):
+                break
+            cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
