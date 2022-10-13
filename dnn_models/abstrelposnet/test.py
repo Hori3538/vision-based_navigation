@@ -1,4 +1,6 @@
 import argparse
+from datetime import datetime
+import os
 
 import torch
 from torch.utils.data import DataLoader
@@ -16,6 +18,7 @@ def main():
     parser.add_argument("--dataset-dir", type=str)
     parser.add_argument("--weight-path", type=str)
     parser.add_argument("--beta", type=float, default=1.0)
+    parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -77,7 +80,7 @@ def main():
             
             print(f"concrete_pose: {concrete_pose}")
             print(f"abst_pose: {abst_pose}")
-            print(f"model's_output: {test_output}/n")
+            print(f"model's_output: {test_output} \n")
 
             image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()
             image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
@@ -85,6 +88,13 @@ def main():
             key = cv2.waitKey(0)
             if key == ord("q") or key == ord("c"):
                 break
+            if key == ord("r"):
+                image_name = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
+                image_dir = os.path.join(args.image_dir, image_name)
+                print(f"image_dir: {image_dir}")
+                cv2.imwrite(image_dir, image)
+
+                print("saving image\n")
             cv2.destroyAllWindows()
 
 
