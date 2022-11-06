@@ -10,6 +10,7 @@ from copy import copy
 import torch
 import cv2
 import os
+import random
 
 from smartargparse import BaseConfig
 from transformutils import calc_relative_pose, get_array_2d_from_msg
@@ -24,13 +25,15 @@ class Config(BaseConfig):
     odom_topic_name: str = "/odom"
     image_width: int = 224
     image_height: int = 224
-    reso_dist: float = 0.1
+    reso_dist: float = 0.5
     reso_yaw: float = 0.1
 
 @dataclass(frozen=True)
 class ReferencePoint:
     image: CompressedImage
     pose: Pose
+    total_travel_distance: float
+    point_index: int
 
 class DatasetGenerator(metaclass=ABCMeta):
     def __init__(self, config: Config, bag: Bag, bag_id: int=0) -> None:
@@ -42,8 +45,8 @@ class DatasetGenerator(metaclass=ABCMeta):
 
     def __call__(self) -> None:
         self._generate_reference_data()
-        reference_points1 = copy(self._reference_points)
-        reference_points2 = copy(self._reference_points)
+        reference_points1 = random.sample(self._reference_points, len(self._reference_points))
+        reference_points2 = random.sample(self._reference_points, len(self._reference_points))
 
         for reference_point1 in reference_points1:
             for reference_point2 in reference_points2:
@@ -62,6 +65,9 @@ class DatasetGenerator(metaclass=ABCMeta):
         odom: Optional[Odometry] = None
         initial_odom: Optional[Odometry] = None
         prev_odom: Optional[Odometry] = None
+
+        total_travel_distance = 0.0
+        point_index = 0
 
         for topic, msg, _ in self._bag.read_messages(
                 topics=[self._config.image_topic_name, self._config.odom_topic_name]):
@@ -82,9 +88,12 @@ class DatasetGenerator(metaclass=ABCMeta):
                 delta_odom = get_array_2d_from_msg(delta_pose)
 
             delta_dist = np.linalg.norm(delta_odom[:2])
+            # if delta_dist != np.inf: total_travel_distance += delta_dist
             delta_yaw = abs(delta_odom[2])
             if delta_dist >= self._config.reso_dist or delta_yaw >= self._config.reso_yaw:
-                self._reference_points.append(ReferencePoint(image, odom.pose.pose))
+                if delta_dist != np.inf: total_travel_distance += delta_dist
+                self._reference_points.append(ReferencePoint(image, odom.pose.pose, float(total_travel_distance), point_index))
+                point_index += 1
                 prev_odom = odom
 
             image = None
