@@ -49,9 +49,11 @@ def test() -> None:
     args = parser.parse_args()
 
     dataset = DatasetForAbstRelPosNet(args.dataset_dir)
-    dataloader = DataLoader(dataset, batch_size=200, shuffle=True, drop_last=True)
+    dataloader = DataLoader(dataset, batch_size=200, shuffle=True, drop_last=False)
+    dataloader2 = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
-    print(f"data len: {dataset.__len__()}")
+    data_len = dataset.__len__()
+    print(f"data len: {data_len}")
     label_count_minus = torch.tensor([0] * 3)
     label_count_same = torch.tensor([0] * 3)
     label_count_plus = torch.tensor([0] * 3)
@@ -64,11 +66,11 @@ def test() -> None:
         label_count_same += torch.sum(label == 0, 0)[:3]
         label_count_plus += torch.sum(label == 1, 0)[:3]
 
-    print(f"x_label_count -1: {label_count_minus[0]}, 0: {label_count_same[0]}, 1: {label_count_plus[0]}")
-    print(f"y_label_count -1: {label_count_minus[1]}, 0: {label_count_same[1]}, 1: {label_count_plus[1]}")
-    print(f"x_label_count -1: {label_count_minus[2]}, 0: {label_count_same[2]}, 1: {label_count_plus[2]}")
+    print(f"x_label_rate -1: {label_count_minus[0] / data_len * 100:.3f}, 0: {label_count_same[0] / data_len * 100:.3f}, 1: {label_count_plus[0] / data_len * 100:.3f}")
+    print(f"y_label_rate -1: {label_count_minus[1] / data_len * 100:.3f}, 0: {label_count_same[1] / data_len * 100:.3f}, 1: {label_count_plus[1] / data_len * 100:.3f}")
+    print(f"yaw_label_rate -1: {label_count_minus[2] / data_len * 100:.3f}, 0: {label_count_same[2] / data_len * 100:.3f}, 1: {label_count_plus[2] / data_len * 100:.3f}")
 
-    for batch in dataloader:
+    for batch in dataloader2:
         data = TrainingData(*batch)
         image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)

@@ -25,8 +25,10 @@ class Config(BaseConfig):
     odom_topic_name: str = "/odom"
     image_width: int = 224
     image_height: int = 224
-    reso_dist: float = 0.5
-    reso_yaw: float = 0.1
+    # reso_dist: float = 0.5
+    # reso_yaw: float = 0.1
+    reso_dist: float = 0.1
+    reso_yaw: float = 0.05
 
 @dataclass(frozen=True)
 class ReferencePoint:

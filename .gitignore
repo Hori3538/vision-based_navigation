@@ -3,3 +3,4 @@ data/
 weights/
 logs/
 *.ipynb
+.ipynb_checkpoints

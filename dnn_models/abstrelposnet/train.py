@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 
 import torch
-from torch import inf, optim
+from torch import optim
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -36,7 +36,7 @@ def main():
     torch.backends.cudnn.bencmark = True
     torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
-    dirs_name = args.dirs_name if args.dirs_name else datetime.now().strftime("%Y%m%d_%H%M")
+    dirs_name = args.dirs_name if args.dirs_name else datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = os.path.join(args.log_dir, dirs_name)
     weight_dir = os.path.join(args.weight_dir, dirs_name)
     os.makedirs(weight_dir, exist_ok=True)
