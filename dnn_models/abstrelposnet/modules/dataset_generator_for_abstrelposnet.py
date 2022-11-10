@@ -36,7 +36,6 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
         yaw_gap = abs(relative_odom[2])
         if dist_gap > self._config.dist_gap_th or yaw_gap > self._config.yaw_gap_th \
             or abs(reference_point1.total_travel_distance - reference_point2.total_travel_distance) > self._config.total_travel_dist_gap_th:
-        # if dist_gap > self._config.dist_gap_th or yaw_gap > self._config.yaw_gap_th:
             return 
 
         abst_relative_odom = self._to_abstract(relative_odom)
