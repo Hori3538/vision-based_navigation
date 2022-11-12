@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(relative_navigator)
+add_compile_options(-std=c++17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(catkin REQUIRED COMPONENTS
     roscpp
+    rosbag
     sensor_msgs
     relative_navigator_msgs
     )

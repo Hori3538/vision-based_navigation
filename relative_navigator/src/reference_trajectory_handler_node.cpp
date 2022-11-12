@@ -1,4 +1,4 @@
-#include <reference_trajectory_handler/reference_trajectory_handler.h>
+#include <reference_trajectory_handler/reference_trajectory_handler.hpp>
 
 int main(int argc, char** argv)
 {
