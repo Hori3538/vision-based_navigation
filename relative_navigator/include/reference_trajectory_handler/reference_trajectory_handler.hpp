@@ -1,12 +1,14 @@
 #ifndef REFERENCE_TRAJECTORY_HANDLER
 #define REFERENCE_TRAJECTORY_HANDLER
 
+#include "ros/publisher.h"
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/Marker.h>
 #include <tf2/utils.h>
 
 #include <optional>
@@ -55,10 +57,21 @@ namespace relative_navigator
             nav_msgs::Odometry calc_relative_odom(nav_msgs::Odometry from_odom, nav_msgs::Odometry to_odom);
             Pose2D generate_pose_2d(geometry_msgs::Pose pose);
 
+            void set_points_to_marker(visualization_msgs::Marker& marker, std::vector<ReferencePoint> reference_trajectory);
+            visualization_msgs::Marker generate_marker_of_reference_trajectory(std::vector<ReferencePoint> reference_trajectory);
+            visualization_msgs::Marker generate_marker_of_reference_points(std::vector<ReferencePoint> reference_trajectory);
+            void visualize_reference_trajectory(visualization_msgs::Marker marker_of_reference_trajectory);
+            void visualize_reference_points(visualization_msgs::Marker marker_of_reference_points);
+
             Param param_;
 
             std::vector<ReferencePoint> reference_trajectory_;
+            visualization_msgs::Marker marker_of_reference_trajectory_;
+            visualization_msgs::Marker marker_of_reference_points_;
             int current_index = 0;
+
+            ros::Publisher reference_trajectory_pub_;
+            ros::Publisher reference_points_pub_;
     };
 }
 

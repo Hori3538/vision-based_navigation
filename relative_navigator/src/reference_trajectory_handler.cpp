@@ -1,13 +1,5 @@
-#include "nav_msgs/Odometry.h"
-#include "rosbag/bag.h"
-#include "rosbag/message_instance.h"
-#include "rosbag/query.h"
-#include "rosbag/view.h"
-#include "sensor_msgs/CompressedImage.h"
-#include <cmath>
-#include <cstddef>
-#include <math.h>
-#include <optional>
+#include "ros/time.h"
+#include "visualization_msgs/Marker.h"
 #include <reference_trajectory_handler/reference_trajectory_handler.hpp>
 
 namespace relative_navigator
@@ -15,17 +7,24 @@ namespace relative_navigator
     ReferenceTrajectoryHandler::ReferenceTrajectoryHandler(ros::NodeHandle &nh, ros::NodeHandle &private_nh)
     {
         private_nh.param<int>("hz", param_.hz, 10);
-        private_nh.param<std::string>("bagfile_path", param_.bagfile_path, "~/bag/abstrelposnet/dkan_perimeter/2022-9-30-1500_dkan_perimeter_1.bag");
+        private_nh.param<std::string>("bagfile_path", param_.bagfile_path, "/home/amsl/bag/abstrelposnet/dkan_perimeter/2022-9-30-1500_dkan_perimeter_1.bag");
         private_nh.param<std::string>("image_topic_name", param_.image_topic_name, "/usb_cam/image_raw/compressed");
         private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/whill/odom");
         private_nh.param<float>("trajectory_resolution_trans", param_.trajectory_resolution_trans, 1.0);
         private_nh.param<float>("trajectory_resolution_yaw", param_.trajectory_resolution_yaw, 0.2);
 
         reference_trajectory_ = generate_reference_trajectory();
+        marker_of_reference_trajectory_ = generate_marker_of_reference_trajectory(reference_trajectory_);
+        marker_of_reference_points_ = generate_marker_of_reference_points(reference_trajectory_);
+
+        reference_trajectory_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_trajectory", 1);
+        reference_points_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_points", 1);
     }
 
     std::vector<ReferencePoint> ReferenceTrajectoryHandler::generate_reference_trajectory()
     {
+        ROS_INFO("Generating reference trajectory from bagfile");
+
         std::vector<ReferencePoint> reference_trajectory;
         std::optional<sensor_msgs::CompressedImage> image;
         std::optional<nav_msgs::Odometry> odom;
@@ -68,6 +67,7 @@ namespace relative_navigator
             odom.reset();
         }
 
+        ROS_INFO("Done generating reference trajectory from bagfile");
         return reference_trajectory;
     }
 
@@ -104,12 +104,85 @@ namespace relative_navigator
         return pose_2d;
     }
 
+    void ReferenceTrajectoryHandler::set_points_to_marker(visualization_msgs::Marker& marker, std::vector<ReferencePoint> reference_trajectory)
+    {
+        for(const auto& reference_point: reference_trajectory)
+        {
+            geometry_msgs::Point point;
+            point.x = reference_point.pose.position.x;
+            point.y = reference_point.pose.position.y;
+
+            marker.colors.push_back(marker.color);
+            marker.points.push_back(point);
+            marker.pose.orientation.w = 1; // only used for avoiding quatenion warnings
+        }
+    }
+
+    visualization_msgs::Marker ReferenceTrajectoryHandler::generate_marker_of_reference_trajectory(std::vector<ReferencePoint> reference_trajectory)
+    {
+        visualization_msgs::Marker marker;
+        marker.type = marker.LINE_STRIP;
+        marker.action = marker.ADD;
+        marker.scale.x = 0.1; 
+        marker.scale.y = 0.1; 
+        marker.scale.z = 0.1; 
+        marker.color.a = 1.0;
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+
+        set_points_to_marker(marker, reference_trajectory);
+
+        return marker;
+    }
+
+    visualization_msgs::Marker ReferenceTrajectoryHandler::generate_marker_of_reference_points(std::vector<ReferencePoint> reference_trajectory)
+    {
+        visualization_msgs::Marker marker;
+        marker.type = marker.SPHERE_LIST;
+        marker.action = marker.ADD;
+        marker.scale.x = 0.2;
+        marker.scale.y = 0.2;
+        marker.scale.z = 0.2;
+        marker.color.a = 1.0;
+        marker.color.r = 0.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+
+        set_points_to_marker(marker, reference_trajectory);
+
+        return marker;
+    }
+
+    void ReferenceTrajectoryHandler::visualize_reference_trajectory(visualization_msgs::Marker marker_of_reference_trajectory)
+    {
+        marker_of_reference_trajectory.header.frame_id = "map";
+        marker_of_reference_trajectory.header.stamp = ros::Time::now();
+        marker_of_reference_trajectory.ns = "reference_trajectory";
+        marker_of_reference_trajectory.id = 0;
+
+        reference_trajectory_pub_.publish(marker_of_reference_trajectory);
+    }
+
+    void ReferenceTrajectoryHandler::visualize_reference_points(visualization_msgs::Marker marker_of_reference_points)
+    {
+        marker_of_reference_points.header.frame_id = "map";
+        marker_of_reference_points.header.stamp = ros::Time::now();
+        marker_of_reference_points.ns = "reference_points";
+        marker_of_reference_points.id = 0;
+
+        reference_points_pub_.publish(marker_of_reference_points);
+    }
+
     void ReferenceTrajectoryHandler::process()
     {
         ros::Rate loop_rate(param_.hz);
 
         while (ros::ok())
         {
+            visualize_reference_trajectory(marker_of_reference_trajectory_);
+            visualize_reference_points(marker_of_reference_points_);
+
             ros::spinOnce();
             loop_rate.sleep();
         }
