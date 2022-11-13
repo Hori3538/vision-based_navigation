@@ -10,6 +10,7 @@
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <tf2/utils.h>
+#include <image_transport/image_transport.h>
 
 #include <optional>
 
@@ -62,16 +63,21 @@ namespace relative_navigator
             visualization_msgs::Marker generate_marker_of_reference_points(std::vector<ReferencePoint> reference_trajectory);
             void visualize_reference_trajectory(visualization_msgs::Marker marker_of_reference_trajectory);
             void visualize_reference_points(visualization_msgs::Marker marker_of_reference_points);
+            sensor_msgs::CompressedImage get_image_from_trajectory(int index, std::vector<ReferencePoint> reference_trajectory);
+            sensor_msgs::CompressedImage get_current_reference_image();
+            void publish_reference_image();
 
             Param param_;
 
             std::vector<ReferencePoint> reference_trajectory_;
             visualization_msgs::Marker marker_of_reference_trajectory_;
             visualization_msgs::Marker marker_of_reference_points_;
-            int current_index = 0;
+            int current_index_ = 0;
 
             ros::Publisher reference_trajectory_pub_;
             ros::Publisher reference_points_pub_;
+            // image_transport::Publisher reference_image_pub_;
+            ros::Publisher reference_image_pub_;
     };
 }
 

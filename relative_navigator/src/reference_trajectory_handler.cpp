@@ -1,4 +1,5 @@
 #include "ros/time.h"
+#include "sensor_msgs/CompressedImage.h"
 #include "visualization_msgs/Marker.h"
 #include <reference_trajectory_handler/reference_trajectory_handler.hpp>
 
@@ -19,6 +20,10 @@ namespace relative_navigator
 
         reference_trajectory_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_trajectory", 1);
         reference_points_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_points", 1);
+
+        // image_transport::ImageTransport it(nh);
+        // reference_image_pub_ = it.advertise("/reference_image", 1);
+        reference_image_pub_ = nh.advertise<sensor_msgs::CompressedImage>("/relative_navigator/reference_image/image_raw/compressed", 1);
     }
 
     std::vector<ReferencePoint> ReferenceTrajectoryHandler::generate_reference_trajectory()
@@ -174,6 +179,28 @@ namespace relative_navigator
         reference_points_pub_.publish(marker_of_reference_points);
     }
 
+    sensor_msgs::CompressedImage ReferenceTrajectoryHandler::get_image_from_trajectory(int index, std::vector<ReferencePoint> reference_trajectory)
+    {
+        sensor_msgs::CompressedImage target_image = reference_trajectory[index].image;
+
+        return target_image;
+    }
+
+    sensor_msgs::CompressedImage ReferenceTrajectoryHandler::get_current_reference_image()
+    {
+        sensor_msgs::CompressedImage current_reference_image = get_image_from_trajectory(current_index_, reference_trajectory_);
+
+        return current_reference_image;
+    }
+
+    void ReferenceTrajectoryHandler::publish_reference_image()
+    {
+        sensor_msgs::CompressedImage reference_image = get_current_reference_image();
+        reference_image.header.stamp = ros::Time::now();
+        reference_image_pub_.publish(reference_image);
+    }
+    
+
     void ReferenceTrajectoryHandler::process()
     {
         ros::Rate loop_rate(param_.hz);
@@ -182,6 +209,7 @@ namespace relative_navigator
         {
             visualize_reference_trajectory(marker_of_reference_trajectory_);
             visualize_reference_points(marker_of_reference_points_);
+            publish_reference_image();
 
             ros::spinOnce();
             loop_rate.sleep();
