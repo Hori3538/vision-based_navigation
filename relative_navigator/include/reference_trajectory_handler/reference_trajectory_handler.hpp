@@ -1,10 +1,10 @@
 #ifndef REFERENCE_TRAJECTORY_HANDLER
 #define REFERENCE_TRAJECTORY_HANDLER
 
-#include "ros/publisher.h"
 #include <ros/ros.h>
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
+#include <std_msgs/Bool.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
@@ -53,6 +53,7 @@ namespace relative_navigator
             ReferenceTrajectoryHandler(ros::NodeHandle &nh, ros::NodeHandle &pnh);
             void process();
         private:
+            void reaching_goal_flag_callback(const std_msgs::BoolConstPtr &msg);
             std::vector<ReferencePoint> generate_reference_trajectory();
             geometry_msgs::Pose calc_relative_pose(geometry_msgs::Pose from_pose, geometry_msgs::Pose to_pose);
             nav_msgs::Odometry calc_relative_odom(nav_msgs::Odometry from_odom, nav_msgs::Odometry to_odom);
@@ -61,10 +62,12 @@ namespace relative_navigator
             void set_points_to_marker(visualization_msgs::Marker& marker, std::vector<ReferencePoint> reference_trajectory);
             visualization_msgs::Marker generate_marker_of_reference_trajectory(std::vector<ReferencePoint> reference_trajectory);
             visualization_msgs::Marker generate_marker_of_reference_points(std::vector<ReferencePoint> reference_trajectory);
+            visualization_msgs::Marker generate_marker_of_current_reference_point();
             void visualize_reference_trajectory(visualization_msgs::Marker marker_of_reference_trajectory);
             void visualize_reference_points(visualization_msgs::Marker marker_of_reference_points);
-            sensor_msgs::CompressedImage get_image_from_trajectory(int index, std::vector<ReferencePoint> reference_trajectory);
-            sensor_msgs::CompressedImage get_current_reference_image();
+            void visualize_current_reference_point();
+            sensor_msgs::CompressedImage get_image_from_trajectory(int index, std::vector<ReferencePoint> reference_trajectory); // この関数いらんかも
+            sensor_msgs::CompressedImage get_current_reference_image(); // この関数いらないかも
             void publish_reference_image();
 
             Param param_;
@@ -76,8 +79,9 @@ namespace relative_navigator
 
             ros::Publisher reference_trajectory_pub_;
             ros::Publisher reference_points_pub_;
-            // image_transport::Publisher reference_image_pub_;
+            ros::Publisher current_reference_point_pub_;
             ros::Publisher reference_image_pub_;
+            ros::Subscriber reaching_goal_flag_sub_;
     };
 }
 

@@ -1,5 +1,4 @@
 #include "ros/time.h"
-#include "sensor_msgs/CompressedImage.h"
 #include "visualization_msgs/Marker.h"
 #include <reference_trajectory_handler/reference_trajectory_handler.hpp>
 
@@ -20,15 +19,26 @@ namespace relative_navigator
 
         reference_trajectory_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_trajectory", 1);
         reference_points_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_points", 1);
+        current_reference_point_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/current_reference_point", 1);
 
-        // image_transport::ImageTransport it(nh);
-        // reference_image_pub_ = it.advertise("/reference_image", 1);
         reference_image_pub_ = nh.advertise<sensor_msgs::CompressedImage>("/relative_navigator/reference_image/image_raw/compressed", 1);
+        reaching_goal_flag_sub_ = nh.subscribe("/reaching_goal_flag", 1, &ReferenceTrajectoryHandler::reaching_goal_flag_callback, this);
+    }
+    void ReferenceTrajectoryHandler::reaching_goal_flag_callback(const std_msgs::BoolConstPtr &msg)
+    {
+        bool reaching_goal_flag = msg->data;
+        if(reaching_goal_flag) current_index_++;
+        
+        if(current_index_ >= reference_trajectory_.size())
+        {
+            ROS_INFO("reaching_final_goal [reference_trajectory_handler]");
+            current_index_--;
+        }
     }
 
     std::vector<ReferencePoint> ReferenceTrajectoryHandler::generate_reference_trajectory()
     {
-        ROS_INFO("Generating reference trajectory from bagfile");
+        ROS_INFO("Generating reference trajectory from bagfile [reference_trajectory_handler]");
 
         std::vector<ReferencePoint> reference_trajectory;
         std::optional<sensor_msgs::CompressedImage> image;
@@ -159,6 +169,23 @@ namespace relative_navigator
         return marker;
     }
 
+    visualization_msgs::Marker ReferenceTrajectoryHandler::generate_marker_of_current_reference_point()
+    {
+        geometry_msgs::Pose current_reference_point_pose = reference_trajectory_[current_index_].pose;
+        visualization_msgs::Marker marker;
+        marker.type = marker.ARROW;
+        marker.scale.x = 1.0;
+        marker.scale.y = 0.2;
+        marker.scale.z = 0.2;
+        marker.color.a = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+        marker.pose = current_reference_point_pose;
+
+        return marker;
+    }
+
     void ReferenceTrajectoryHandler::visualize_reference_trajectory(visualization_msgs::Marker marker_of_reference_trajectory)
     {
         marker_of_reference_trajectory.header.frame_id = "map";
@@ -177,6 +204,16 @@ namespace relative_navigator
         marker_of_reference_points.id = 0;
 
         reference_points_pub_.publish(marker_of_reference_points);
+    }
+
+    void ReferenceTrajectoryHandler::visualize_current_reference_point()
+    {
+        visualization_msgs::Marker marker = generate_marker_of_current_reference_point();
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "current_reference_point";
+        marker.id = 0;
+        current_reference_point_pub_.publish(marker);
     }
 
     sensor_msgs::CompressedImage ReferenceTrajectoryHandler::get_image_from_trajectory(int index, std::vector<ReferencePoint> reference_trajectory)
@@ -209,6 +246,7 @@ namespace relative_navigator
         {
             visualize_reference_trajectory(marker_of_reference_trajectory_);
             visualize_reference_points(marker_of_reference_points_);
+            visualize_current_reference_point();
             publish_reference_image();
 
             ros::spinOnce();
