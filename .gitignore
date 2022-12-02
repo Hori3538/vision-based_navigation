@@ -4,3 +4,4 @@ weights/
 logs/
 *.ipynb
 .ipynb_checkpoints
+compile_commands.json

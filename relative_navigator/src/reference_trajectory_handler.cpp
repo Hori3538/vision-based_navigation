@@ -1,5 +1,3 @@
-#include "ros/time.h"
-#include "visualization_msgs/Marker.h"
 #include <reference_trajectory_handler/reference_trajectory_handler.hpp>
 
 namespace relative_navigator
@@ -7,7 +5,7 @@ namespace relative_navigator
     ReferenceTrajectoryHandler::ReferenceTrajectoryHandler(ros::NodeHandle &nh, ros::NodeHandle &private_nh)
     {
         private_nh.param<int>("hz", param_.hz, 10);
-        private_nh.param<std::string>("bagfile_path", param_.bagfile_path, "/home/amsl/bag/abstrelposnet/dkan_perimeter/2022-9-30-1500_dkan_perimeter_1.bag");
+        private_nh.param<std::string>("bagfile_path", param_.bagfile_path, "/home/amsl/bag/abstrelposnet/dkan_perimeter/2022-12-2-1410_dkan_perimeter_for_reference_counterclockwise.bag");
         private_nh.param<std::string>("image_topic_name", param_.image_topic_name, "/usb_cam/image_raw/compressed");
         private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/whill/odom");
         private_nh.param<float>("trajectory_resolution_trans", param_.trajectory_resolution_trans, 1.0);
@@ -17,11 +15,11 @@ namespace relative_navigator
         marker_of_reference_trajectory_ = generate_marker_of_reference_trajectory(reference_trajectory_);
         marker_of_reference_points_ = generate_marker_of_reference_points(reference_trajectory_);
 
-        reference_trajectory_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_trajectory", 1);
-        reference_points_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/reference_points", 1);
-        current_reference_point_pub_ = nh.advertise<visualization_msgs::Marker>("/relative_navigator/current_reference_point", 1);
+        reference_trajectory_pub_ = nh.advertise<visualization_msgs::Marker>("/reference_trajectory", 1);
+        reference_points_pub_ = nh.advertise<visualization_msgs::Marker>("/reference_points", 1);
+        current_reference_point_pub_ = nh.advertise<visualization_msgs::Marker>("/current_reference_point", 1);
 
-        reference_image_pub_ = nh.advertise<sensor_msgs::CompressedImage>("/relative_navigator/reference_image/image_raw/compressed", 1);
+        reference_image_pub_ = nh.advertise<sensor_msgs::CompressedImage>("/reference_image/image_raw/compressed", 1);
         reaching_goal_flag_sub_ = nh.subscribe("/reaching_goal_flag", 1, &ReferenceTrajectoryHandler::reaching_goal_flag_callback, this);
     }
     void ReferenceTrajectoryHandler::reaching_goal_flag_callback(const std_msgs::BoolConstPtr &msg)
