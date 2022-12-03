@@ -26,7 +26,6 @@ def main():
     model = AbstRelPosNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))
     model.eval()
-    criterion = AbstPoseLoss(args.beta, device)
 
     test_dataset = DatasetForAbstRelPosNet(args.dataset_dir)
     test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)

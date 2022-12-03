@@ -14,6 +14,7 @@ add_message_files(
   FILES
   ImageWithPose.msg
   ImageWithPoseArray.msg
+  AbstRelPose.msg
 )
 
 generate_messages(
