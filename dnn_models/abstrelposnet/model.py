@@ -1,16 +1,16 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models as models
+from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 class AbstRelPosNet(nn.Module):
     def __init__(self) -> None:
         super(AbstRelPosNet, self).__init__()
 
-        efficient1 = models.efficientnet_b0(pretrained=True)
+        efficient1 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
         efficient1.classifier = nn.Identity()
 
-        efficient2 = models.efficientnet_b0(pretrained=True)
+        efficient2 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
         efficient2.classifier = nn.Identity()
 
         self.efficient1 = efficient1
