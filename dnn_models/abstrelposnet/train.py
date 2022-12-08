@@ -32,7 +32,8 @@ def main():
     parser.add_argument("-r", "--dirs-name", type=str, default="")
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu" 
     torch.backends.cudnn.bencmark = True
     torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
