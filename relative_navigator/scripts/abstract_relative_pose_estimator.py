@@ -39,8 +39,8 @@ class AbstractRelativePoseEstimator:
                 rospy.get_param("label_th_y", 0.33),
                 rospy.get_param("label_th_yaw", 0.33),
             )
-        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        self._device: str = "cpu"
+        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cpu"
         self._model: AbstRelPosNet = AbstRelPosNet().to(self._device)
         self._model.load_state_dict(torch.load(self._param.weight_path, map_location=torch.device(self._device)))
         self._model.eval()

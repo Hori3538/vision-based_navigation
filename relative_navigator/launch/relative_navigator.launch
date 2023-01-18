@@ -11,6 +11,12 @@
   <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator_node" output="screen">
   </node>
 
+  <node pkg="ros_utils" type="odom_topic_to_tf_node" name="odom_topic_to_tf_node" output="screen">
+  </node>
+
+  <!-- <node pkg="ros_utils" type="odom_transformer_node" name="odom_transformer_node" output="screen"> -->
+  <!-- </node> -->
+
   <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/relative_navigator_map.rviz" output="screen"/>
 
   <node pkg="rviz" name="rviz_base_link_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/relative_navigator_base_link.rviz" output="screen"/>

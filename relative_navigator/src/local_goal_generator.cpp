@@ -10,7 +10,7 @@ namespace relative_navigator
         private_nh.param<float>("angle_to_goal", param_.dist_to_goal_y, 0.2);
 
         abst_rel_pose_sub_ = nh.subscribe("/abstract_relative_pose", 10, &LocalGoalGenerator::abst_rel_pose_callback, this);
-        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/local_goal", 1);
+        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1);
     }
 
     void LocalGoalGenerator::abst_rel_pose_callback(const relative_navigator_msgs::AbstRelPoseConstPtr &msg)
