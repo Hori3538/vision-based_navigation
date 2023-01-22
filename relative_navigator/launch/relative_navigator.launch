@@ -11,6 +11,9 @@
   <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator_node" output="screen">
   </node>
 
+  <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner_node" output="screen">
+  </node>
+
   <node pkg="ros_utils" type="odom_topic_to_tf_node" name="odom_topic_to_tf_node" output="screen">
   </node>
 
