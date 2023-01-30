@@ -4,6 +4,7 @@ import os
 from typing import List, Tuple
 import torch
 import torch.nn as nn
+from torchvision import transforms
 
 import sys
 sys.path.append("../../common")
@@ -13,15 +14,19 @@ from training_data import TrainingData
 # from common.training_data import TrainingData
 
 class DatasetForAbstRelPosNet(Dataset):
-    def __init__(self, dataset_dir: str, use_transform: bool = True) -> None:
+    def __init__(self, dataset_dir: str, use_transform: bool = False) -> None:
         data_path = []
         for data in iglob(os.path.join(dataset_dir, "*", "*")):
             data_path.append(data)
         self._data_path = data_path
         self._use_transform = use_transform
         self._transform = nn.Sequential(
-
-                )
+                transforms.ColorJitter(
+                    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
+                transforms.RandomGrayscale(0.2),
+                transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
+                transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
+            )
 
     def __len__(self) -> int:
         return len(self._data_path)

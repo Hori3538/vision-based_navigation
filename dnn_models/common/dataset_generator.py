@@ -22,13 +22,13 @@ class Config(BaseConfig):
     bagfiles_dir: str
     output_dir: str
     image_topic_name: str = "/usb_cam/image_raw/compressed"
-    odom_topic_name: str = "/odom"
+    odom_topic_name: str = "/whill/odom"
     image_width: int = 224
     image_height: int = 224
-    # reso_dist: float = 0.5
-    # reso_yaw: float = 0.1
-    reso_dist: float = 0.1
-    reso_yaw: float = 0.05
+    reso_dist: float = 0.5
+    reso_yaw: float = 0.1
+    # reso_dist: float = 0.1
+    # reso_yaw: float = 0.05
 
 @dataclass(frozen=True)
 class ReferencePoint:

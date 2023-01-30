@@ -9,7 +9,7 @@ import numpy as np
 
 from model import AbstRelPosNet
 from modules.dataset import DatasetForAbstRelPosNet
-from loss_func import AbstPoseLoss
+from modules.onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
 
 def main():
     print("=== test start ==")
@@ -17,11 +17,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dir", type=str)
     parser.add_argument("--weight-path", type=str)
-    parser.add_argument("--beta", type=float, default=1.0)
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
     model = AbstRelPosNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))
@@ -42,6 +42,7 @@ def main():
         for data in test_loader:
             src_image, dst_image, label = data
             abst_pose = label[:, :3]
+            encoded_abst_pose = onehot_encoding(abst_pose)
             concrete_pose = label[:, 3:]
 
             label_count_minus += torch.sum(label == -1, 0)[:3]
@@ -49,10 +50,10 @@ def main():
             label_count_plus += torch.sum(label == 1, 0)[:3]
 
             test_output = model(src_image.to(device), dst_image.to(device))
-            discretization_func = lambda n: -1 if n < -0.5 else(1 if n > 0.5 else 0)
-            descretized_output = test_output.detach().cpu().apply_(discretization_func)
+            onehot_output = create_onehot_from_output(test_output)
+            decoded_output = onehot_decoding(onehot_output)
 
-            judge_tensor = abst_pose == descretized_output
+            judge_tensor = abst_pose == decoded_output
             correct_count += torch.sum(judge_tensor, 0) 
             complete_correct_count += torch.sum(torch.sum(judge_tensor, 1) == 3) 
 
@@ -74,12 +75,14 @@ def main():
             abst_pose = label[:, :3]
             concrete_pose = label[:, 3:]
 
-            test_output = model(src_image.to(device), dst_image.to(device))[0]
+            test_output = model(src_image.to(device), dst_image.to(device))
+            onehot_output = create_onehot_from_output(test_output)
+            decoded_output = onehot_decoding(onehot_output)
 
             
             print(f"concrete_pose: {concrete_pose}")
             print(f"abst_pose: {abst_pose}")
-            print(f"model's_output: {test_output} \n")
+            print(f"model's_output: {decoded_output[0]} \n")
 
             image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()
             image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)

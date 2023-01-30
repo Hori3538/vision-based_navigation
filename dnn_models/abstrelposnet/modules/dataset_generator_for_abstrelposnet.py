@@ -24,7 +24,7 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
 
     def _generate_data_from_reference_points(self, reference_point1: ReferencePoint,
             reference_point2: ReferencePoint) -> None:
-        if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
+        # if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
 
         images = (self._compressed_image_to_tensor(reference_point1.image),
                 self._compressed_image_to_tensor(reference_point2.image))

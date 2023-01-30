@@ -18,7 +18,7 @@ class AbstRelPosNet(nn.Module):
         self.fc_layers = nn.Sequential(
                     nn.Linear(1280 * 2, 256),
                     nn.ReLU(),
-                    nn.Linear(256, 3)
+                    nn.Linear(256, 9)
                 )
 
     def forward(self, input1, input2):

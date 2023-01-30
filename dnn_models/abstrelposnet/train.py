@@ -3,7 +3,9 @@ from datetime import datetime
 import os
 
 import torch
-from torch import optim
+import torch.nn as nn
+from torchvision import transforms
+from torch import nn, optim
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -11,6 +13,7 @@ from tqdm import tqdm
 from model import AbstRelPosNet
 from modules.dataset import DatasetForAbstRelPosNet
 from loss_func import AbstPoseLoss
+from modules.onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
 
 def main():
     print("== Training Script ==")
@@ -25,15 +28,14 @@ def main():
     parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=32)
     parser.add_argument("-w", "--num-workers", type=int, default=0)
-    parser.add_argument("-e", "--num-epochs", type=int, default=50)
-    parser.add_argument("-a", "--beta", type=int, default=1.0)
+    parser.add_argument("-e", "--num-epochs", type=int, default=60)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
     args = parser.parse_args()
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu" 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cpu" 
     torch.backends.cudnn.bencmark = True
     torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
@@ -50,7 +52,7 @@ def main():
     model = AbstRelPosNet().to(device)
     if args.pretrained_weights:
         model.load_state_dict(torch.load(args.pretrained_weights))
-    criterion = AbstPoseLoss(args.beta, device)
+    criterion = AbstPoseLoss()
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     scheduler = optim.lr_scheduler.CyclicLR(
                 optimizer, base_lr=args.lr_min, max_lr=args.lr_max, step_size_up=10, mode="triangular", cycle_momentum=False
@@ -70,6 +72,14 @@ def main():
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
             shuffle=True, drop_last=True, num_workers=args.num_workers)
 
+    train_transform = nn.Sequential(
+            transforms.ColorJitter(
+                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
+            transforms.RandomGrayscale(0.2),
+            transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
+            transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
+        )
+
     writer = SummaryWriter(log_dir = log_dir)
 
     best_loss = float('inf')
@@ -84,9 +94,12 @@ def main():
                 optimizer.zero_grad()
 
                 src_image, dst_image, label = data
+                src_image, dst_image = train_transform(src_image), train_transform(dst_image)
+
                 abst_pose = label[:, :3]
+                encoded_abst_pose = onehot_encoding(abst_pose)
                 train_output = model(src_image.to(device), dst_image.to(device))
-                train_loss = criterion(train_output, abst_pose.to(device))
+                train_loss = criterion(train_output, encoded_abst_pose.to(device))
                 epoch_train_loss += train_loss
                 train_loss.backward()
                 optimizer.step()
@@ -102,15 +115,16 @@ def main():
             for data in valid_loader:
                 src_image, dst_image, label = data
                 abst_pose = label[:, :3]
+                encoded_abst_pose = onehot_encoding(abst_pose)
                 valid_output = model(src_image.to(device), dst_image.to(device))
-                discretization_func = lambda n: -1 if n < -0.5 else(1 if n > 0.5 else 0)
-                descretized_output = valid_output.detach().cpu().apply_(discretization_func)
+                onehot_output = create_onehot_from_output(valid_output)
+                decoded_output = onehot_decoding(onehot_output)
 
-                judge_tensor = abst_pose == descretized_output
+                judge_tensor = abst_pose == decoded_output
                 correct_count += torch.sum(judge_tensor, 0) 
                 complete_correct_count += torch.sum(torch.sum(judge_tensor, 1) == 3) 
 
-                valid_loss = criterion(valid_output, abst_pose.to(device))
+                valid_loss = criterion(valid_output, encoded_abst_pose.to(device))
                 epoch_valid_loss += valid_loss
             data_count = valid_dataset.__len__() // args.batch_size * args.batch_size
             label_accuracy = correct_count / data_count
