@@ -11,9 +11,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from model import AbstRelPosNet
-from modules.dataset import DatasetForAbstRelPosNet
+from dataset import DatasetForAbstRelPosNet
 from loss_func import AbstPoseLoss
-from modules.onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
+from onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
 
 def main():
     print("== Training Script ==")

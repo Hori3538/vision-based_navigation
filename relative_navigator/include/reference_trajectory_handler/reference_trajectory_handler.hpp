@@ -38,15 +38,6 @@ namespace relative_navigator
         geometry_msgs::Pose pose;
     };
 
-    // class ReferenceTrajectory
-    // {
-    //     public:
-    //         ReferenceTrajectory(std::vector<ReferencePoint> reference_points);
-    //     private:
-    //         std::vector<ReferencePoint> reference_points_;
-    //         int current_index = 0;
-    // };
-
     class ReferenceTrajectoryHandler
     {
         public:

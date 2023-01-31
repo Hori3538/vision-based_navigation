@@ -7,9 +7,7 @@ from glob import iglob
 
 from smartargparse import parse_args
 
-import sys
-sys.path.append("../common")
-from modules.dataset_generator_for_abstrelposnet import (ConfigForAbstRelPosNet,
+from dataset_generator_for_abstrelposnet import (ConfigForAbstRelPosNet,
         DatasetGeneratorForAbstRelPosNet)
 
 def generate_dataset(config, bagfile_path, bag_id) -> None:

@@ -8,8 +8,8 @@ import cv2
 import numpy as np
 
 from model import AbstRelPosNet
-from modules.dataset import DatasetForAbstRelPosNet
-from modules.onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
+from dataset import DatasetForAbstRelPosNet
+from onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
 
 def main():
     print("=== test start ==")
@@ -20,8 +20,7 @@ def main():
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model = AbstRelPosNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))

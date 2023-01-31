@@ -20,7 +20,7 @@ namespace relative_navigator
         current_reference_point_pub_ = nh.advertise<visualization_msgs::Marker>("/current_reference_point", 1);
 
         reference_image_pub_ = nh.advertise<sensor_msgs::CompressedImage>("/reference_image/image_raw/compressed", 1);
-        reaching_goal_flag_sub_ = nh.subscribe<std_msgs::Bool>("/reaching_target_pose_flag", 1, &ReferenceTrajectoryHandler::reaching_goal_flag_callback, this);
+        reaching_goal_flag_sub_ = nh.subscribe<std_msgs::Bool>("/reaching_goal_flag", 1, &ReferenceTrajectoryHandler::reaching_goal_flag_callback, this);
     }
     void ReferenceTrajectoryHandler::reaching_goal_flag_callback(const std_msgs::BoolConstPtr &msg)
     {

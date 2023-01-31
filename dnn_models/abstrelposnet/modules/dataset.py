@@ -1,17 +1,12 @@
 from torch.utils.data import Dataset
 from glob import iglob
 import os
-from typing import List, Tuple
+from typing import Tuple
 import torch
 import torch.nn as nn
 from torchvision import transforms
 
-import sys
-sys.path.append("../../common")
-sys.path.append("../common")
 from training_data import TrainingData
-# sys.path.append("../..")
-# from common.training_data import TrainingData
 
 class DatasetForAbstRelPosNet(Dataset):
     def __init__(self, dataset_dir: str, use_transform: bool = False) -> None:

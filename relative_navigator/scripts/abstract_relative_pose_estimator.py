@@ -7,9 +7,7 @@ import torch
 import numpy as np
 import cv2
 
-import sys
-# sys.path.append("../..")
-from dnn_models.abstrelposnet.model import AbstRelPosNet
+from model import AbstRelPosNet
 from typing import Optional, List
 
 from relative_navigator_msgs.msg import AbstRelPose
