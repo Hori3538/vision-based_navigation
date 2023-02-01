@@ -1,4 +1,3 @@
-#include "relative_navigator_msgs/AbstRelPose.h"
 #include <local_goal_generator/local_goal_generator.hpp>
 
 namespace relative_navigator

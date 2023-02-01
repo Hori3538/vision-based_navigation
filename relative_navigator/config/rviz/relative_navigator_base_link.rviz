@@ -14,7 +14,7 @@ Panels:
         - /Path1
         - /Path2
       Splitter Ratio: 0.5
-    Tree Height: 746
+    Tree Height: 363
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -241,7 +241,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.640282154083252
+      Distance: 17.534284591674805
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
