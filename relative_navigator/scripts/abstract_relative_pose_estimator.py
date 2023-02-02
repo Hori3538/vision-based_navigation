@@ -76,7 +76,7 @@ class AbstractRelativePoseEstimator:
         models_output: torch.Tensor = self._model(self._observed_image.to(self._device),self._reference_image.to(self._device))
         relative_pose_label: List[int] = self._models_output_to_label_list(models_output)
         abst_rel_pose_msg = AbstRelPose()
-        rospy.loginfo("relative_pose_label: %d,%d,%d", relative_pose_label[0],relative_pose_label[1], relative_pose_label[2])
+        # rospy.loginfo("relative_pose_label: %d,%d,%d", relative_pose_label[0],relative_pose_label[1], relative_pose_label[2])
         abst_rel_pose_msg.x, abst_rel_pose_msg.y, abst_rel_pose_msg.yaw = relative_pose_label
         abst_rel_pose_msg.header.stamp = rospy.Time.now()
 

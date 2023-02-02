@@ -5,9 +5,9 @@ namespace relative_navigator
     LocalPathPlanner::LocalPathPlanner(ros::NodeHandle &nh, ros::NodeHandle &private_nh)
     {
         private_nh.param<int>("hz", param_.hz, 10);
-        private_nh.param<double>("goal_dist_th", param_.goal_dist_th, 0.5);
+        private_nh.param<double>("goal_dist_th", param_.goal_dist_th, 0.4);
         // private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.1);
-        private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.1);
+        private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.16);
         private_nh.param<double>("predict_dt", param_.predict_dt, 0.1);
         private_nh.param<double>("predict_time", param_.predict_time, 3.0);
         private_nh.param<double>("velocity_reso", param_.velocity_reso, 0.05);
@@ -218,15 +218,15 @@ namespace relative_navigator
         if(dist_to_target < param_.goal_dist_th)
         {
             reaching_target_point_flag_ = true;
-            if(yaw_to_target < param_.goal_yaw_th) reaching_target_pose_flag_ = true;
+            if(abs(yaw_to_target) < param_.goal_yaw_th) reaching_target_pose_flag_ = true;
         }
     }
 
     void LocalPathPlanner::publish_reaching_flag()
     {
-        std_msgs::Bool reaching_target_point_flag_msg;
-        reaching_target_point_flag_msg.data = reaching_target_point_flag_;
-        reaching_target_pose_flag_pub_.publish(reaching_target_point_flag_msg);
+        std_msgs::Bool reaching_target_pose_flag_msg;
+        reaching_target_pose_flag_msg.data = reaching_target_pose_flag_;
+        reaching_target_pose_flag_pub_.publish(reaching_target_pose_flag_msg);
     }
 
     double LocalPathPlanner::calc_dist_from_pose(geometry_msgs::Pose pose)

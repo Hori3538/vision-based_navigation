@@ -9,7 +9,7 @@ import numpy as np
 
 from model import AbstRelPosNet
 from dataset import DatasetForAbstRelPosNet
-from onehot_conversion import onehot_decoding, onehot_encoding, create_onehot_from_output
+from onehot_conversion import onehot_decoding, create_onehot_from_output
 
 def main():
     print("=== test start ==")
@@ -41,7 +41,6 @@ def main():
         for data in test_loader:
             src_image, dst_image, label = data
             abst_pose = label[:, :3]
-            encoded_abst_pose = onehot_encoding(abst_pose)
             concrete_pose = label[:, 3:]
 
             label_count_minus += torch.sum(label == -1, 0)[:3]
