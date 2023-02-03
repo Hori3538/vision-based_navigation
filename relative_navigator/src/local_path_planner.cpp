@@ -1,3 +1,4 @@
+#include "tf2/utils.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -52,8 +53,8 @@ namespace relative_navigator
         if(local_goal_.has_value())
         {
             update_local_goal(previous_base_to_now_base);
-            reaching_judge();
-            publish_reaching_flag();
+            // reaching_judge();
+            // publish_reaching_flag();
         }
     }
 
@@ -139,13 +140,22 @@ namespace relative_navigator
         return trajectory;
     }
 
-    double LocalPathPlanner::calc_heading_score(std::vector<State> &trajectory)
+    double LocalPathPlanner::calc_heading_score_to_target_point(std::vector<State> &trajectory)
     {
         State last_state = trajectory.back();
-        double angle_to_goal = std::atan2(local_goal_.value().pose.position.y - last_state.y,
+        double angle_to_target_point = std::atan2(local_goal_.value().pose.position.y - last_state.y,
                                           local_goal_.value().pose.position.x - last_state.x);
-        angle_to_goal -= last_state.yaw;
-        double heading_score = M_PI - std::abs(adjust_yaw(angle_to_goal));
+        angle_to_target_point -= last_state.yaw;
+        double heading_score = M_PI - std::abs(adjust_yaw(angle_to_target_point));
+
+        return heading_score;
+    }
+
+    double LocalPathPlanner::calc_heading_score_to_target_pose(std::vector<State> &trajectory)
+    {
+        State last_state = trajectory.back();
+        double angle_to_target_pose = adjust_yaw(tf2::getYaw(local_goal_.value().pose.orientation) - last_state.yaw);
+        double heading_score = M_PI - std::abs(angle_to_target_pose);
 
         return heading_score;
     }
@@ -153,6 +163,7 @@ namespace relative_navigator
     std::pair<double, double> LocalPathPlanner::decide_input()
     {
         std::pair<double, double> input{0.0, 0.0};
+        if (reaching_target_pose_flag_) return input;
         
         std::vector<double> dynamic_window = calc_dynamic_window();
         double best_score = 0;
@@ -167,8 +178,20 @@ namespace relative_navigator
                 std::vector<State> trajectory = calc_trajectory(velocity, yawrate);
                 trajectories_.push_back(trajectory);
 
-                double heading_score = param_.heading_score_gain * calc_heading_score(trajectory);
-                double velocity_score = param_.velocity_score_gain * velocity;
+                double heading_score;
+                double velocity_score;
+
+                if(reaching_target_point_flag_)
+                {
+                    heading_score = calc_heading_score_to_target_pose(trajectory);
+                    velocity_score = -velocity;
+                }
+                else
+                {
+                    heading_score = param_.heading_score_gain * calc_heading_score_to_target_point(trajectory);
+                    velocity_score = param_.velocity_score_gain * velocity;
+
+                }
                 double sum_score = heading_score + velocity_score;
 
                 if(sum_score > best_score){
@@ -210,8 +233,6 @@ namespace relative_navigator
 
     void LocalPathPlanner::reaching_judge()
     {
-        // double dist_to_target = std::sqrt(pow(local_goal_.value().pose.position.x, 2) +
-        //         pow(local_goal_.value().pose.position.y, 2));
         double dist_to_target = calc_dist_from_pose(local_goal_.value().pose);
         double yaw_to_target = tf2::getYaw(local_goal_.value().pose.orientation);
 
@@ -241,18 +262,28 @@ namespace relative_navigator
         {
             ros::spinOnce();
 
-            if(local_goal_.has_value()){
+            if(local_goal_.has_value())
+            {
+                reaching_judge();
+
                 std::pair<double, double> input = decide_input();
+                // std::cout << "reaching_target_point_flag_: " << reaching_target_point_flag_ << std::endl;
+                // std::cout << "reaching_target_pose_flag_: " << reaching_target_pose_flag_ << std::endl;
+                // std::cout << "input.first: " << input.first << std::endl;
+                // std::cout << "input.second: " << input.second << std::endl;
+                // std::cout << std::endl;
                 publish_control_input(input.first, input.second);
-                for(auto& trajectory : trajectories_){
+                publish_reaching_flag();
+
+                for(auto& trajectory : trajectories_)
+                {
                     visualize_trajectory(trajectory, candidate_local_path_pub_);
                 }
                 visualize_trajectory(best_trajectory_, best_local_path_pub_);
                 local_goal_pub_.publish(local_goal_.value());
-                }
+            }
 
             loop_rate.sleep();
         }
-
     }
 }

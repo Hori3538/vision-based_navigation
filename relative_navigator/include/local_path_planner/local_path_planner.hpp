@@ -62,7 +62,8 @@ namespace relative_navigator
             void robot_move(State &state, double velocity, double yawrate);
             std::vector<double> calc_dynamic_window();
             std::vector<State> calc_trajectory(double velocity, double yawrate);
-            double calc_heading_score(std::vector<State> &trajectory);
+            double calc_heading_score_to_target_point(std::vector<State> &trajectory);
+            double calc_heading_score_to_target_pose(std::vector<State> &trajectory);
             std::pair<double, double> decide_input();
             void publish_control_input(double velocity, double yawrate);
             void visualize_trajectory(std::vector<State> &trajectory, ros::Publisher &publisher);
