@@ -1,4 +1,3 @@
-#include "tf2/utils.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -7,7 +6,6 @@ namespace relative_navigator
     {
         private_nh.param<int>("hz", param_.hz, 10);
         private_nh.param<double>("goal_dist_th", param_.goal_dist_th, 0.4);
-        // private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.1);
         private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.16);
         private_nh.param<double>("predict_dt", param_.predict_dt, 0.1);
         private_nh.param<double>("predict_time", param_.predict_time, 3.0);

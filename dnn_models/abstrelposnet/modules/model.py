@@ -6,10 +6,12 @@ class AbstRelPosNet(nn.Module):
     def __init__(self) -> None:
         super(AbstRelPosNet, self).__init__()
 
-        efficient1 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
+        # efficient1 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
+        efficient1 = efficientnet_b0(pretrained=True)
         efficient1.classifier = nn.Identity()
 
-        efficient2 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
+        # efficient2 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
+        efficient2 = efficientnet_b0(pretrained=True)
         efficient2.classifier = nn.Identity()
 
         self.efficient1 = efficient1

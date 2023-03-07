@@ -5,8 +5,6 @@ import numpy as np
 
 from transformutils import (calc_relative_pose, get_array_2d_from_msg)
 
-import sys
-sys.path.append("../../common")
 from dataset_generator import Config, DatasetGenerator, ReferencePoint
 
 class ConfigForAbstRelPosNet(Config):
