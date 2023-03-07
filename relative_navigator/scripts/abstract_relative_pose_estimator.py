@@ -29,6 +29,7 @@ class AbstractRelativePoseEstimator:
         self._param: Param = Param(
                 rospy.get_param("hz", 10),
                 rospy.get_param("weight_path", "/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/dkan_perimeter_0130_duplicate_test_20000/best_loss.pt"),
+                rospy.get_param("weight_path", "/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/dkan_perimeter_0130_duplicate_test_20000/best_loss.pt"),
                 rospy.get_param("image_width", 224),
                 rospy.get_param("image_height", 224),
             )
