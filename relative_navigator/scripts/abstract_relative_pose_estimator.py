@@ -41,7 +41,9 @@ class AbstractRelativePoseEstimator:
         self._reference_image: Optional[torch.Tensor] = None
         self._reaching_target_pose_flag: Optional[bool] = None
 
-        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber("/usb_cam/image_raw/compressed",
+        # self._observed_image_sub: rospy.Subscriber = rospy.Subscriber("/usb_cam/image_raw/compressed",
+        #     CompressedImage, self._observed_image_callback, queue_size=1)
+        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber("/grasscam/image_raw/compressed",
             CompressedImage, self._observed_image_callback, queue_size=1)
         self._reference_image_sub: rospy.Subscriber = rospy.Subscriber("/reference_image/image_raw/compressed",
             CompressedImage, self._reference_image_callback, queue_size=1)
@@ -62,7 +64,7 @@ class AbstractRelativePoseEstimator:
     def _compressed_image_to_tensor(self, msg: CompressedImage) -> torch.Tensor:
 
         np_image: np.ndarray = cv2.imdecode(np.frombuffer(
-            msg.data, np.uint8), cv2.IMREAD_COLOR)  
+            msg.data, np.uint8), cv2.IMREAD_COLOR)
         np_image = cv2.resize(
             np_image, (self._param.image_height, self._param.image_width))
         image = torch.tensor(
@@ -85,7 +87,7 @@ class AbstractRelativePoseEstimator:
     def _models_output_to_label_list(self, models_output: torch.Tensor) -> List[int]:
         one_hot_encoded_output: torch.Tensor = create_onehot_from_output(models_output)
         decoded_output: torch.Tensor = onehot_decoding(one_hot_encoded_output)
-        
+
         return decoded_output.squeeze().tolist()
 
     def process(self) -> None:
