@@ -27,7 +27,7 @@ namespace relative_navigator
         local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
         control_input_pub_ = nh.advertise<geometry_msgs::Twist>("local_path/cmd_vel", 1);
         best_local_path_pub_ = nh.advertise<nav_msgs::Path>("best_local_path", 1);
-        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("candicate_local_path", 1);
+        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("candidate_local_path", 1);
     }
 
     void LocalPathPlanner::local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg)
