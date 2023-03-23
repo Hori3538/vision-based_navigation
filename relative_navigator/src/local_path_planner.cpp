@@ -51,8 +51,6 @@ namespace relative_navigator
         if(local_goal_.has_value())
         {
             update_local_goal(previous_base_to_now_base);
-            // reaching_judge();
-            // publish_reaching_flag();
         }
     }
 
@@ -265,11 +263,6 @@ namespace relative_navigator
                 reaching_judge();
 
                 std::pair<double, double> input = decide_input();
-                // std::cout << "reaching_target_point_flag_: " << reaching_target_point_flag_ << std::endl;
-                // std::cout << "reaching_target_pose_flag_: " << reaching_target_pose_flag_ << std::endl;
-                // std::cout << "input.first: " << input.first << std::endl;
-                // std::cout << "input.second: " << input.second << std::endl;
-                // std::cout << std::endl;
                 publish_control_input(input.first, input.second);
                 publish_reaching_flag();
 
