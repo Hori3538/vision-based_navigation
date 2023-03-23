@@ -5,7 +5,7 @@
     <rosparam file="$(find relative_navigator)/config/param/reference_trajectory_handler.yaml" command="load"/>
   </node>
   <node pkg="relative_navigator" type="abstract_relative_pose_estimator_node.py" name="abstract_relative_pose_estimator_node" output="screen">
-      <rosparam file="$(find relative_navigator)/config/param/relative_pose_label_estimator.yaml" command="load"/>
+      <param name="observed_image_topic_name" value="/usb_cam/image_raw/compressed"/>
   </node>
 
   <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator_node" output="screen">

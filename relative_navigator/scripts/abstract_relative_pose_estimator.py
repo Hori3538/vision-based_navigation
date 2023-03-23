@@ -21,16 +21,19 @@ class Param:
     weight_path: str
     image_width: int
     image_height: int
+    observed_image_topic_name: str
 
 class AbstractRelativePoseEstimator:
     def __init__(self) -> None:
         rospy.init_node("abstract_relative_pose_estimator")
 
         self._param: Param = Param(
-                rospy.get_param("hz", 10),
-                rospy.get_param("weight_path", "/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/dkan_perimeter_0130_duplicate_test_20000/best_loss.pt"),
-                rospy.get_param("image_width", 224),
-                rospy.get_param("image_height", 224),
+                rospy.get_param("~hz", 10),
+                rospy.get_param("~weight_path", "/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/dkan_perimeter_0130_duplicate_test_20000/best_loss.pt"),
+                rospy.get_param("~image_width", 224),
+                rospy.get_param("~image_height", 224),
+                # rospy.get_param("observed_image_topic_name"),
+                rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
             )
         self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
         self._model: AbstRelPosNet = AbstRelPosNet().to(self._device)
@@ -41,9 +44,7 @@ class AbstractRelativePoseEstimator:
         self._reference_image: Optional[torch.Tensor] = None
         self._reaching_target_pose_flag: Optional[bool] = None
 
-        # self._observed_image_sub: rospy.Subscriber = rospy.Subscriber("/usb_cam/image_raw/compressed",
-        #     CompressedImage, self._observed_image_callback, queue_size=1)
-        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber("/grasscam/image_raw/compressed",
+        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(self._param.observed_image_topic_name,
             CompressedImage, self._observed_image_callback, queue_size=1)
         self._reference_image_sub: rospy.Subscriber = rospy.Subscriber("/reference_image/image_raw/compressed",
             CompressedImage, self._reference_image_callback, queue_size=1)
