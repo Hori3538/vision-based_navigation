@@ -180,7 +180,7 @@ namespace relative_navigator
                 if(reaching_target_point_flag_)
                 {
                     heading_score = calc_heading_score_to_target_pose(trajectory);
-                    velocity_score = -velocity;
+                    velocity_score = -std::abs(velocity);
                 }
                 else
                 {
@@ -188,6 +188,7 @@ namespace relative_navigator
                     velocity_score = param_.velocity_score_gain * velocity;
 
                 }
+                // double sum_score = heading_score + std::abs(velocity_score);
                 double sum_score = heading_score + velocity_score;
 
                 if(sum_score > best_score){
@@ -201,6 +202,8 @@ namespace relative_navigator
             }
         }
         previous_input_ = input;
+        // std::cout << "best_velocity_score" << best_velocity_score << std::endl;
+
         return input;
     }
 

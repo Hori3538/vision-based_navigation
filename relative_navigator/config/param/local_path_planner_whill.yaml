@@ -3,16 +3,16 @@ goal_dist_th: 0.4
 goal_yaw_th: 0.16
 predict_dt: 0.1
 predict_time: 3.0
-velocity_reso: 0.05
-yawrate_reso: 0.1
+velocity_reso: 0.02
+yawrate_reso: 0.05
 
-heading_score_gain: 1.0
+heading_score_gain: 1.2
 velocity_score_gain: 1.0
 dist_score_gain: 0.3
 
 robot_radius: 0.5
 max_speed: 0.3
-min_speed: 0.0
-max_yawrate: 1.0
-max_accel: 3.0
+min_speed: -0.1
+max_yawrate: 2.0
+max_accel: 5.0
 max_dyawrate: 5.0
