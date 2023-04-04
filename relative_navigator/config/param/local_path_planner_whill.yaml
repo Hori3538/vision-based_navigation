@@ -6,13 +6,13 @@ predict_time: 3.0
 velocity_reso: 0.02
 yawrate_reso: 0.05
 
-heading_score_gain: 1.4
+heading_score_gain: 1.8
 velocity_score_gain: 1.0
 dist_score_gain: 0.3
 
 robot_radius: 0.5
 max_speed: 0.3
-min_speed: -0.1
+min_speed: -0.2
 max_yawrate: 2.0
-max_accel: 8.0
-max_dyawrate: 5.0
+max_accel: 10.0
+max_dyawrate: 6.0
