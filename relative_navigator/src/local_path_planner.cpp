@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iostream>
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -12,8 +13,7 @@ namespace relative_navigator
         private_nh.param<double>("predict_time", param_.predict_time, 3.0);
         private_nh.param<double>("velocity_reso", param_.velocity_reso, 0.05);
         private_nh.param<double>("heading_score_gain", param_.heading_score_gain, 0.05);
-        private_nh.param<double>("velocity_score_gain", param_.velocity_score_gain, 1.0);
-        private_nh.param<double>("dist_to_goal_score_gain", param_.dist_to_goal_score_gain, 1.0);
+        private_nh.param<double>("approaching_score_gain", param_.approaching_score_gain, 1.0);
         private_nh.param<double>("yawrate_reso", param_.yawrate_reso, 0.1);
         private_nh.param<double>("robot_radius", param_.robot_radius, 0.5);
         private_nh.param<double>("max_speed", param_.max_speed, 0.3);
@@ -157,14 +157,17 @@ namespace relative_navigator
         return heading_score;
     }
 
-    double LocalPathPlanner::calc_dist_score_to_goal(std::vector<State> &trajectory)
+    double LocalPathPlanner::calc_approaching_score(std::vector<State> &trajectory)
     {
         State last_state = trajectory.back();
         double delta_x = local_goal_.value().pose.position.x - last_state.x;
         double delta_y = local_goal_.value().pose.position.y - last_state.y;
-        double dist_score = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+        double dist_paths_end_to_goal = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
 
-        return dist_score;
+        double dist_paths_start_to_goal = calc_dist_from_pose(local_goal_.value().pose);
+        double approaching_score = dist_paths_start_to_goal - dist_paths_end_to_goal;
+
+        return approaching_score;
     }
 
     std::pair<double, double> LocalPathPlanner::decide_input()
@@ -173,11 +176,10 @@ namespace relative_navigator
         if (reaching_target_pose_flag_) return input;
         
         std::vector<double> dynamic_window = calc_dynamic_window();
-        double best_score = 0;
+        double best_score = -INFINITY;
 
         double best_heading_score = 0;
-        double best_velocity_score = 0;
-        double best_dist_score_to_goal = 0;
+        double best_approaching_score = 0;
 
         trajectories_.clear();
 
@@ -187,23 +189,19 @@ namespace relative_navigator
                 trajectories_.push_back(trajectory);
 
                 double heading_score;
-                double velocity_score;
-                double dist_score_to_goal;
+                double approaching_score;
 
                 if(reaching_target_point_flag_)
                 {
                     heading_score = calc_heading_score_to_target_pose(trajectory);
-                    velocity_score = -std::abs(velocity);
-                    dist_score_to_goal = 0;
+                    approaching_score = -std::abs(calc_approaching_score(trajectory));
                 }
                 else
                 {
                     heading_score = param_.heading_score_gain * calc_heading_score_to_target_point(trajectory);
-                    velocity_score = 0;
-                    dist_score_to_goal = -calc_dist_score_to_goal(trajectory);
+                    approaching_score = param_.approaching_score_gain * calc_approaching_score(trajectory);
                 }
-                // double sum_score = heading_score + std::abs(velocity_score);
-                double sum_score = heading_score + velocity_score + dist_score_to_goal;
+                double sum_score = heading_score + approaching_score;
 
                 if(sum_score > best_score){
                     best_score = sum_score;
@@ -211,7 +209,7 @@ namespace relative_navigator
                     best_trajectory_ = trajectory;
 
                     best_heading_score = heading_score;
-                    best_velocity_score = velocity_score;
+                    best_approaching_score = approaching_score;
                 }
             }
         }
