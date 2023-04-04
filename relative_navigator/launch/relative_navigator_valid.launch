@@ -12,7 +12,7 @@
   </node>
 
   <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner_node" output="screen">
-      <rosparam file="$(find relative_navigator)/config/param/local_path_planner.yaml" command="load"/>
+      <rosparam file="$(find relative_navigator)/config/param/local_path_planner_whill.yaml" command="load"/>
   </node>
 
   <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/relative_navigator_map_whill.rviz" output="screen"/>

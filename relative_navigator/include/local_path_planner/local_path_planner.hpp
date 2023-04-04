@@ -29,7 +29,7 @@ namespace relative_navigator
         double yawrate_reso;
         double heading_score_gain;
         double velocity_score_gain;
-        double dist_score_gain;
+        double dist_to_goal_score_gain;
 
         double robot_radius;
         double max_speed;
@@ -64,6 +64,7 @@ namespace relative_navigator
             std::vector<State> calc_trajectory(double velocity, double yawrate);
             double calc_heading_score_to_target_point(std::vector<State> &trajectory);
             double calc_heading_score_to_target_pose(std::vector<State> &trajectory);
+            double calc_dist_score_to_goal(std::vector<State> &trajectory);
             std::pair<double, double> decide_input();
             void publish_control_input(double velocity, double yawrate);
             void visualize_trajectory(std::vector<State> &trajectory, ros::Publisher &publisher);
