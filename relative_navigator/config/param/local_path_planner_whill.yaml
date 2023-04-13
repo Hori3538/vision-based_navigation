@@ -6,8 +6,8 @@ predict_time: 3.0
 velocity_reso: 0.02
 yawrate_reso: 0.05
 
-heading_score_gain: 1.8
-approaching_score_gain: 1.0
+heading_score_gain: 1.0
+approaching_score_gain: 3.0
 
 robot_radius: 0.5
 max_speed: 0.3
