@@ -1,0 +1,6 @@
+hz: 10
+bagfile_path: /home/amsl/bag/abstrelposnet/dkan_perimeter/for_reference/2022-12-2-1410_dkan_perimeter_for_reference_counterclockwise.bag
+image_topic_name: /usb_cam/image_raw/compressed
+odom_topic_name: /whill/odom
+trajectory_resolution_trans: 1.5
+trajectory_resolution_yaw: 0.2
