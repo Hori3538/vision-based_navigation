@@ -8,8 +8,7 @@ from transformutils import (calc_relative_pose, get_array_2d_from_msg)
 from dataset_generator import Config, DatasetGenerator, ReferencePoint
 
 class ConfigForSimpleAbstRelPosNet(Config):
-    # dist_gap_th: float = 4.5
-    dist_gap_th: float = 6.0
+    dist_gap_th: float = 9.0
     yaw_gap_th: float = 0.6
     dist_labelling_th: float = 1.5
     yaw_labelling_th: float = 0.2
@@ -24,7 +23,7 @@ class DatasetGeneratorForSimpleAbstRelPosNet(DatasetGenerator):
 
     def _generate_data_from_reference_points(self, reference_point1: ReferencePoint,
             reference_point2: ReferencePoint) -> None:
-        if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
+        # if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
 
         images = (self._compressed_image_to_tensor(reference_point1.image),
                 self._compressed_image_to_tensor(reference_point2.image))
@@ -44,7 +43,7 @@ class DatasetGeneratorForSimpleAbstRelPosNet(DatasetGenerator):
 
         self._label_counts[label] += 1
 
-        print(f"label_counts: {self._label_counts}")
+        # print(f"label_counts: {self._label_counts}")
         label = [label] + relative_odom
         self._save_data(images, torch.tensor(label, dtype=torch.float32))
         self._used_index_list += [reference_point1.point_index, reference_point2.point_index]

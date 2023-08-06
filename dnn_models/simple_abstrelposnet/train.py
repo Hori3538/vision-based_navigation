@@ -98,11 +98,8 @@ def main():
                 src_image, dst_image = train_transform(src_image), train_transform(dst_image)
 
                 abst_pose_label = label[:, 0]
-                # print(f"abst_pose_label: {abst_pose_label}")
                 encoded_abst_pose = onehot_encoding(abst_pose_label)
-                # print(f"encoded_abst_pose_label: {encoded_abst_pose}")
                 train_output = model(src_image.to(device), dst_image.to(device))
-                # print(f"train_output: {train_output}")
                 train_loss = criterion(train_output, encoded_abst_pose.to(device))
                 epoch_train_loss += train_loss
                 train_loss.backward()
@@ -117,15 +114,11 @@ def main():
             correct_count = 0
             for data in valid_loader:
                 src_image, dst_image, label = data
-                abst_pose_label = label[:, 0]
+                abst_pose_label = label[:, [0]]
                 encoded_abst_pose = onehot_encoding(abst_pose_label)
                 valid_output = model(src_image.to(device), dst_image.to(device))
-                # print(f"valid_output: {valid_output}")
                 onehot_output = create_onehot_from_output(valid_output)
-                # print(f"onehot_output: {onehot_output}")
                 decoded_output = onehot_decoding(onehot_output)
-                print(f"abst_pose_label: {abst_pose_label}")
-                print(f"decoded_output: {decoded_output}")
 
                 judge_tensor = abst_pose_label == decoded_output
                 correct_count += torch.sum(judge_tensor) 

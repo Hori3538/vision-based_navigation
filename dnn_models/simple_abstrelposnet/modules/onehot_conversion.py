@@ -19,8 +19,6 @@ def onehot_decoding(encoded_abst_pose: torch.Tensor) -> torch.Tensor:
 def create_onehot_from_output(outputs: torch.Tensor) -> torch.Tensor:
     onehot_outputs = torch.zeros(outputs.shape, dtype=torch.int8)
     for i in range(len(outputs)):
-        # onehot_outputs[i, [outputs[i, :3].max(0).indices,
-        #     outputs[i, 3:6].max(0).indices+3, outputs[i, 6:].max(0).indices+6]] = 1
         onehot_outputs[i, outputs[i, :].max(0).indices] = 1
 
     return onehot_outputs

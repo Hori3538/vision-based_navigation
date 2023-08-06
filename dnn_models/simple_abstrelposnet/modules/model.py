@@ -8,19 +8,19 @@ class SimpleAbstRelPosNet(nn.Module):
         super(SimpleAbstRelPosNet, self).__init__()
 
         efficient1 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
-        efficient1.features[-1] = torchvision.ops.misc.Conv2dNormActivation(320, 100, kernel_size=(1,1), activation_layer=nn.SiLU)
         # efficient1 = efficientnet_b0(pretrained=True)
         efficient1.classifier = nn.Sequential(nn.Identity())
 
         efficient2 = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT)
-        efficient2.features[-1] = torchvision.ops.misc.Conv2dNormActivation(320, 100, kernel_size=(1,1), activation_layer=nn.SiLU)
         # efficient2 = efficientnet_b0(pretrained=True)
         efficient2.classifier = nn.Sequential(nn.Identity())
 
         self.efficient1 = efficient1
         self.efficient2 = efficient2
         self.fc_layers = nn.Sequential(
-                    nn.Linear(100 * 2, 32),
+                    nn.Linear(1280 * 2, 128),
+                    nn.ReLU(),
+                    nn.Linear(128, 32),
                     nn.ReLU(),
                     nn.Linear(32, 4)
                 )

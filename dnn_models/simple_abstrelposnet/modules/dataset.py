@@ -54,6 +54,7 @@ def test() -> None:
 
     data_len = dataset.__len__()
     print(f"data len: {data_len}")
+    # label: 0:stop, 1:forwad, 2:left_turn, 3:right_turn, -1:out_range
     label_counts = torch.tensor([0, 0, 0, 0])
 
     for batch in dataloader:
