@@ -14,7 +14,6 @@ from typing import Optional, List
 from model import SimpleAbstRelPosNet
 from onehot_conversion import create_onehot_from_output, onehot_decoding
 
-
 @dataclass(frozen=True)
 class Param:
     hz: float

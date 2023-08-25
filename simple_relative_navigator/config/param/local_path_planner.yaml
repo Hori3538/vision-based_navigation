@@ -16,3 +16,5 @@ min_speed: -0.1
 max_yawrate: 2.0
 max_accel: 5.0
 max_dyawrate: 5.0
+
+odom_topic_name: /odom
