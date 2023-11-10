@@ -5,4 +5,6 @@ import torch
 class TrainingData:
     src_image: torch.Tensor
     dst_image: torch.Tensor
-    label: torch.Tensor
+    # label: torch.Tensor
+    labels: torch.Tensor
+    relative_pose: torch.Tensor
