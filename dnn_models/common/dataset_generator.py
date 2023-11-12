@@ -113,9 +113,9 @@ class DatasetGenerator(metaclass=ABCMeta):
 
         return torch.tensor(image)
 
-    def _save_data(self, images: Tuple[torch.Tensor, ...], labels: torch.Tensor, relative_pose: torch.Tensor) -> None:
+    def _save_data(self, images: Tuple[torch.Tensor, ...], direction_label: torch.Tensor, orientation_label: torch.Tensor, relative_pose: torch.Tensor) -> None:
         self._data_count += 1
-        training_data = TrainingData(images[0], images[1], labels, relative_pose)
+        training_data = TrainingData(images[0], images[1], direction_label, orientation_label, relative_pose)
         save_dir = os.path.join(self._config.output_dir, str(self._bag_id))
         os.makedirs(save_dir, exist_ok=True)
         torch.save(training_data, os.path.join(save_dir, f"{self._data_count}.pt"))
