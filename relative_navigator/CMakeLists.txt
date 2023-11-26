@@ -33,7 +33,7 @@ add_dependencies(local_goal_generator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} $
 target_link_libraries(
     local_goal_generator_node
     ${catkin_LIBRARIES}
-    )
+)
 
 add_executable(local_path_planner_node src/local_path_planner_node.cpp src/local_path_planner.cpp)
 add_dependencies(local_path_planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

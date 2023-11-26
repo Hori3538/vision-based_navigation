@@ -1,5 +1,3 @@
-#include <cmath>
-#include <iostream>
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -21,9 +19,10 @@ namespace relative_navigator
         private_nh.param<double>("max_yawrate", param_.max_yawrate, 1.0);
         private_nh.param<double>("max_accel", param_.max_accel, 3.0);
         private_nh.param<double>("max_dyawrate", param_.max_dyawrate, 5.0);
+        private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/whill/odom");
 
         local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
-        odometry_sub_ = nh.subscribe<nav_msgs::Odometry>("/whill/odom", 1, &LocalPathPlanner::odometry_callback, this);
+        odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
         reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
         local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
         control_input_pub_ = nh.advertise<geometry_msgs::Twist>("local_path/cmd_vel", 1);

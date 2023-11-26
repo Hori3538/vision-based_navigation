@@ -1,8 +1,8 @@
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
 from glob import iglob
 import os
-from typing import Tuple
+from typing import List, Tuple
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -28,16 +28,36 @@ class DatasetForAbstRelPosNet(Dataset):
         return len(self._data_path)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, ...]:
+    # def __getitem__(self, idx: int) -> List[torch.Tensor]:
         data: TrainingData = torch.load(self._data_path[idx])
-        src, dst, label = (
+        src, dst, direction_label, orientation_label, relative_pose = (
                     (data.src_image/255).permute(2, 0, 1),
                     (data.dst_image/255).permute(2, 0, 1),
-                    data.label.clone().detach()
+                    data.direction_label.clone().detach(),
+                    data.orientation_label.clone().detach(),
+                    data.relative_pose
                 )
         if self._use_transform:
             src, dst = self._transform(src), self._transform(dst)
 
-        return src, dst, label
+        return src, dst, direction_label, orientation_label, relative_pose
+    @staticmethod
+    def count_data_for_each_label(dataset) -> Tuple[torch.Tensor, ...]:
+        bin_num: int = len(dataset[0][3])
+
+        dataloader = DataLoader(dataset, batch_size=200, shuffle=True, drop_last=False)
+        direction_label_counts: torch.Tensor = torch.tensor([0] * (bin_num+1), dtype=torch.float)
+        orientation_label_counts: torch.Tensor = torch.tensor([0] * bin_num, dtype=torch.float)
+
+        for batch in dataloader:
+            data = TrainingData(*batch)
+            direction_label = data.direction_label
+            orientation_label = data.orientation_label
+
+            direction_label_counts += torch.sum(direction_label, 0)
+            orientation_label_counts += torch.sum(orientation_label, 0)
+        return direction_label_counts, orientation_label_counts
+
 
 def test() -> None:
     from argparse import ArgumentParser
@@ -49,34 +69,31 @@ def test() -> None:
     parser.add_argument("--dataset-dir", type=str)
     args = parser.parse_args()
 
-    dataset = DatasetForAbstRelPosNet(args.dataset_dir)
-    dataloader = DataLoader(dataset, batch_size=200, shuffle=True, drop_last=False)
-    dataloader2 = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
+    dataset = DatasetForAbstRelPosNet(args.dataset_dir, use_transform=False)
+    # データ確認用loader
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
-    data_len = dataset.__len__()
+    data_len: int = dataset.__len__()
     print(f"data len: {data_len}")
-    label_count_minus = torch.tensor([0] * 3)
-    label_count_same = torch.tensor([0] * 3)
-    label_count_plus = torch.tensor([0] * 3)
+
+    direction_label_counts, orientation_label_counts = DatasetForAbstRelPosNet.count_data_for_each_label(dataset)
+
+    direction_label_ratio: torch.Tensor = direction_label_counts / torch.sum(direction_label_counts)
+    orientation_label_ratio: torch.Tensor = orientation_label_counts / torch.sum(orientation_label_counts)
+
+    print(f"direction_label_ratio: {direction_label_ratio}")
+    print(f"orientation_label_ratio: {orientation_label_ratio}")
+    print()
 
     for batch in dataloader:
-        data = TrainingData(*batch)
-        label = data.label
-
-        label_count_minus += torch.sum(label == -1, 0)[:3]
-        label_count_same += torch.sum(label == 0, 0)[:3]
-        label_count_plus += torch.sum(label == 1, 0)[:3]
-
-    print(f"x_label_rate -1: {label_count_minus[0] / data_len * 100:.3f}, 0: {label_count_same[0] / data_len * 100:.3f}, 1: {label_count_plus[0] / data_len * 100:.3f}")
-    print(f"y_label_rate -1: {label_count_minus[1] / data_len * 100:.3f}, 0: {label_count_same[1] / data_len * 100:.3f}, 1: {label_count_plus[1] / data_len * 100:.3f}")
-    print(f"yaw_label_rate -1: {label_count_minus[2] / data_len * 100:.3f}, 0: {label_count_same[2] / data_len * 100:.3f}, 1: {label_count_plus[2] / data_len * 100:.3f}")
-
-    for batch in dataloader2:
         data = TrainingData(*batch)
         image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
         cv2.imshow("images", image)
-        print(f"label: {data.label[0]}")
+        print(f"direction_label: {data.direction_label}")
+        print(f"orientation_label: {data.orientation_label}")
+        print(f"relative_pose: {data.relative_pose}")
+        print()
         key = cv2.waitKey(0)
         if key == ord("q") or key == ord("c"):
             break

@@ -9,6 +9,7 @@
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
+#include <string>
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/utils.h>
@@ -36,6 +37,8 @@ namespace relative_navigator
         double max_yawrate;
         double max_accel;
         double max_dyawrate;
+
+        std::string odom_topic_name;
     };
 
     struct State

@@ -46,18 +46,13 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
 
     def __call__(self) -> None:
         self._generate_reference_data()
-        # print(self._is_appropriate_pair(self._reference_points[100],self._reference_points[100]))
         for reference_point1 in self._reference_points:
             furthest_id = self._search_furthest_id(reference_point1)
-            # print(f"id: {reference_point1.point_index}, furthest_id: {furthest_id}")
 
             while True:
                 point2_id: int = random.randint(reference_point1.point_index, furthest_id)
                 reference_point2: ReferencePoint = self._reference_points[point2_id]
-                # print(f"flag: {self._is_appropriate_pair(reference_point1, reference_point2)}")
-                if self._is_appropriate_pair(reference_point1, reference_point2):
-                    # print(f"id: {reference_point1.point_index}, id2: {reference_point2.point_index}")
-                    break
+                if self._is_appropriate_pair(reference_point1, reference_point2): break
 
             self._generate_data_from_reference_points(reference_point1, reference_point2)
 
@@ -87,21 +82,21 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
                 torch.tensor(relative_odom, dtype=torch.float32))
         self._used_index_list += [reference_point1.point_index, reference_point2.point_index]
 
-    def _to_abstract(self, relative_odom: List[float]) -> List[float]:
-        abst_relative_odom = []
-        for i, value in enumerate(relative_odom):
-            if i != 2:
-                dist_th = self._config.dist_labelling_th
-                if value > dist_th: abst_relative_odom.append(1)
-                elif value < -dist_th: abst_relative_odom.append(-1)
-                else: abst_relative_odom.append((0))
-            else:
-                yaw_th = self._config.yaw_labelling_th
-                if value > yaw_th: abst_relative_odom.append(1)
-                elif value < -yaw_th: abst_relative_odom.append(-1)
-                else: abst_relative_odom.append((0))
-    
-        return abst_relative_odom
+    # def _to_abstract(self, relative_odom: List[float]) -> List[float]:
+    #     abst_relative_odom = []
+    #     for i, value in enumerate(relative_odom):
+    #         if i != 2:
+    #             dist_th = self._config.dist_labelling_th
+    #             if value > dist_th: abst_relative_odom.append(1)
+    #             elif value < -dist_th: abst_relative_odom.append(-1)
+    #             else: abst_relative_odom.append((0))
+    #         else:
+    #             yaw_th = self._config.yaw_labelling_th
+    #             if value > yaw_th: abst_relative_odom.append(1)
+    #             elif value < -yaw_th: abst_relative_odom.append(-1)
+    #             else: abst_relative_odom.append((0))
+    #
+    #     return abst_relative_odom
     # direction label はどのbinが勾配方向かをone-hot形式で表す 勾配がない場合,[-1]=1
     def _to_direction_label(self, relative_pose: List[float]) -> List[float]:
         direction_label: List[float] = [0] * (self._bin_num+1)
@@ -156,9 +151,9 @@ class DatasetGeneratorForAbstRelPosNet(DatasetGenerator):
         # binの割当に使うboarderをbin no 0 の最小値で初期化
         boarder_yaw: float = radians((self._bin_num // 2 - 0.5) * self._config.bin_step_degree)
         for bin_no in range(self._bin_num):
-            if bin_no < self._bin_num-1 and yaw < boarder_yaw or \
-                    bin_no == self._bin_num-1 and yaw <= boarder_yaw:
+            if bin_no < self._bin_num-1 and yaw > boarder_yaw or \
+                    bin_no == self._bin_num-1 and yaw >= boarder_yaw:
                 return bin_no 
-            boarder_yaw += self._config.bin_step_degree
+            boarder_yaw -= radians(self._config.bin_step_degree)
         
         return -1 # ここに到達することはないがlinterが怒るので適当に返す
