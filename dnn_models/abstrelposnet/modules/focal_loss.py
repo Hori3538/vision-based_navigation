@@ -18,23 +18,30 @@ def focal_loss(output, labels, alpha=None, gamma=2):
     """
     # output scalar->probability
     output_probability = F.softmax(output, dim=1)
+    # output_probability = output
     # print(f"prob: {output_probability}")
+
     # bc_loss = F.binary_cross_entropy_with_logits(input=output, target=labels, reduction="none")
     bc_loss = F.binary_cross_entropy(input=output_probability, target=labels, reduction="none")
     # bc_loss = F.cross_entropy(input=output_probability, target=labels, reduction="none")
     # print(f"bc_loss: {bc_loss}")
+    # print(f"exp bc_loss: {torch.exp(-bc_loss)}")
 
-    if gamma == 0.0:
-        modulator = 1.0
-    else:
-        modulator = torch.exp(-gamma * labels * output_probability - gamma * torch.log(1 + torch.exp(-1.0 * output_probability)))
+    modulator = (1 - torch.exp(-bc_loss)) ** gamma
 
-    print(f"modulator: {modulator}")
+    # print(f"modulator: {modulator}")
+    # print(f"modulator sum: {modulator.sum([0, 1])}")
+    # print(f"{labels.shape[0]* labels.shape[1]}")
+    # modulator = modulator * \
+    #             labels.shape[0]* labels.shape[1] / \
+    #             modulator.sum([0, 1])
+    # print(f"modulator: {modulator}")
+
     loss = modulator * bc_loss
 
     if alpha is not None:
         weighted_loss = alpha * loss
-        print(f"alpha: {alpha}")
+        # print(f"alpha: {alpha}")
         focal_loss = torch.sum(weighted_loss)
     else:
         focal_loss = torch.sum(loss)
@@ -96,7 +103,6 @@ class Loss(torch.nn.Module):
 
         batch_size = logits.size(0)
         num_classes = logits.size(1)
-        # labels_one_hot = F.one_hot(labels, num_classes).float()
 
         if self.class_balanced:
             effective_num = 1.0 - np.power(self.beta, self.samples_per_class)
@@ -113,7 +119,6 @@ class Loss(torch.nn.Module):
         else:
             weights = None
 
-        # cb_loss = focal_loss(logits, labels_one_hot, alpha=weights, gamma=self.fl_gamma)
         cb_loss = focal_loss(logits, labels, alpha=weights, gamma=self.fl_gamma)
 
         return cb_loss

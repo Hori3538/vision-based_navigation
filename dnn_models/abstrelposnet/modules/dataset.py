@@ -12,7 +12,8 @@ from training_data import TrainingData
 class DatasetForAbstRelPosNet(Dataset):
     def __init__(self, dataset_dir: str, use_transform: bool = False) -> None:
         data_path = []
-        for data in iglob(os.path.join(dataset_dir, "*", "*")):
+        # for data in iglob(os.path.join(dataset_dir, "*", "*")):
+        for data in iglob(os.path.join(dataset_dir, "*")):
             data_path.append(data)
         self._data_path = data_path
         self._use_transform = use_transform

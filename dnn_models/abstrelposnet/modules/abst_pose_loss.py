@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# from balanced_loss import Loss as FocalLoss
 from focal_loss import Loss as FocalLoss
 
 class AbstPoseLoss(nn.Module):
@@ -33,17 +32,9 @@ class AbstPoseLoss(nn.Module):
         return self._loss_func(outputs, targets)
         # return loss_direction_label + loss_orientation_label
 def test():
-    # outputs = torch.tensor([
-    #         [0.1, 0.2, 0.7, 0.3, 0.4, 0.3, 0.1],
-    #         [0.1, 0.2, 0.7, 0.3, 0.4, 0.3, 0.1]
-    #     ], dtype=torch.float32)
-    # targets = torch.tensor([
-    #         [0, 0, 1, 0, 1, 0, 0],
-    #         [1, 0, 0, 0, 1, 0, 0]
-    #     ], dtype=torch.float32)
     outputs = torch.tensor([
-            [0.1, 0.2, 0.7, 0.3],
-            [0.1, 0.2, 0.7, 0.3]
+            [0.1, 0.2, 0.7, 0.0],
+            [0.1, 0.2, 0.7, 0.0]
         ], dtype=torch.float32)
     targets = torch.tensor([
             [0, 0, 1, 0],
@@ -51,7 +42,7 @@ def test():
         ], dtype=torch.float32)
 
     # criterion = AbstPoseLoss(focal_gamma=1, samples_per_class=[5, 5, 20, 5], class_balanced=True, class_balance_beta=0.999)
-    criterion = FocalLoss(fl_gamma=1, samples_per_class=[5, 5, 5, 15], class_balanced=True, beta=0.99)
+    criterion = FocalLoss(fl_gamma=1, samples_per_class=[5, 5, 5, 15], class_balanced=False, beta=0.99)
     loss = criterion(outputs, targets)
     print(loss)
 

@@ -31,6 +31,8 @@ class Config(BaseConfig):
     reso_dist: float = 0.25
     reso_yaw: float = 0.05
 
+    train_ratio: float = 0.8
+
 @dataclass(frozen=True)
 class ReferencePoint:
     image: CompressedImage
@@ -116,6 +118,10 @@ class DatasetGenerator(metaclass=ABCMeta):
     def _save_data(self, images: Tuple[torch.Tensor, ...], direction_label: torch.Tensor, orientation_label: torch.Tensor, relative_pose: torch.Tensor) -> None:
         self._data_count += 1
         training_data = TrainingData(images[0], images[1], direction_label, orientation_label, relative_pose)
-        save_dir = os.path.join(self._config.output_dir, str(self._bag_id))
+        rand: float = random.random()
+        output_subdir: str = "train" if rand < self._config.train_ratio else "valid"
+        # save_dir = os.path.join(self._config.output_dir, str(self._bag_id))
+        save_dir = os.path.join(self._config.output_dir, output_subdir)
         os.makedirs(save_dir, exist_ok=True)
-        torch.save(training_data, os.path.join(save_dir, f"{self._data_count}.pt"))
+        # torch.save(training_data, os.path.join(save_dir, f"{self._data_count}.pt"))
+        torch.save(training_data, os.path.join(save_dir, f"{self._bag_id}_{self._data_count}.pt"))

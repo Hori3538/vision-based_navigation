@@ -3,13 +3,13 @@ from datetime import datetime
 import os
 
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import cv2
 import numpy as np
 
 from model import AbstRelPosNet
 from dataset import DatasetForAbstRelPosNet
-from onehot_conversion import onehot_decoding, create_onehot_from_output
 
 def main():
     print("=== test start ==")
@@ -21,6 +21,7 @@ def main():
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device ="cpu"
 
     model = AbstRelPosNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))
@@ -29,58 +30,56 @@ def main():
     test_dataset = DatasetForAbstRelPosNet(args.dataset_dir)
     test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
 
+    direction_label_counts, orientation_label_counts = DatasetForAbstRelPosNet.count_data_for_each_label(test_dataset)
+    print(f"direction_label_counts: {direction_label_counts}")
+    print(f"orientation_label_counts: {orientation_label_counts}")
+
     data_num = test_dataset.__len__()
     print(f"data num: {data_num}")
-    label_count_minus = torch.tensor([0] * 3)
-    label_count_same = torch.tensor([0] * 3)
-    label_count_plus = torch.tensor([0] * 3)
 
+    bin_num: int = len(orientation_label_counts)
     with torch.no_grad():
-        correct_count = torch.tensor([0]*3)
-        complete_correct_count = 0
+        direction_label_correct_count = torch.tensor([0] * (bin_num+1))
+        orientation_label_correct_count = torch.tensor([0] * bin_num)
         for data in test_loader:
-            src_image, dst_image, label = data
-            abst_pose = label[:, :3]
-            concrete_pose = label[:, 3:]
-
-            label_count_minus += torch.sum(label == -1, 0)[:3]
-            label_count_same += torch.sum(label == 0, 0)[:3]
-            label_count_plus += torch.sum(label == 1, 0)[:3]
+            src_image, dst_image, direction_label, orientation_label, relative_pose = data
 
             test_output = model(src_image.to(device), dst_image.to(device))
-            onehot_output = create_onehot_from_output(test_output)
-            decoded_output = onehot_decoding(onehot_output)
+            onehot_output_direction = F.one_hot(test_output[:, :bin_num+1].max(1).indices,
+                                                num_classes=bin_num+1)
+            onehot_output_orientation = F.one_hot(test_output[:, bin_num+1:].max(1).indices,
+                                                num_classes=bin_num)
+            direction_judge_tensor = torch.logical_and(
+                    onehot_output_direction == direction_label.to(device),
+                    onehot_output_direction == 1)
+            orientation_judge_tensor = torch.logical_and(
+                    onehot_output_orientation == orientation_label.to(device),
+                    onehot_output_orientation == 1)
 
-            judge_tensor = abst_pose == decoded_output
-            correct_count += torch.sum(judge_tensor, 0) 
-            complete_correct_count += torch.sum(torch.sum(judge_tensor, 1) == 3) 
+            direction_label_correct_count += torch.sum(direction_judge_tensor.to("cpu"), 0)
+            orientation_label_correct_count += torch.sum(orientation_judge_tensor.to("cpu"), 0)
 
-        print(f"x_label_rate -1: {label_count_minus[0] / data_num * 100:.3f}, 0: {label_count_same[0] / data_num * 100:.3f}, 1: {label_count_plus[0] / data_num * 100:.3f}")
-        print(f"y_label_rate -1: {label_count_minus[1] / data_num * 100:.3f}, 0: {label_count_same[1] / data_num * 100:.3f}, 1: {label_count_plus[1] / data_num * 100:.3f}")
-        print(f"yaw_label_rate -1: {label_count_minus[2] / data_num * 100:.3f}, 0: {label_count_same[2] / data_num * 100:.3f}, 1: {label_count_plus[2] / data_num * 100:.3f}")
+        direction_label_accuracy = direction_label_correct_count / direction_label_counts
+        orientation_label_accuracy = orientation_label_correct_count / orientation_label_counts
+        direction_total_accuracy = direction_label_correct_count.sum() / direction_label_counts.sum()
+        orientation_total_accuracy = orientation_label_correct_count.sum() / orientation_label_counts.sum()
 
-        label_accuracy = correct_count / data_num
-        label_complete_accuracy = complete_correct_count / data_num
-        print(f"label accuracy ... x: {label_accuracy[0]:.3f}, y: {label_accuracy[1]:.3f}, yaw: {label_accuracy[2]:.3f}")
-        print(f"complete label accuracy: {label_complete_accuracy:.3f}")
-
-
+        print(f"direction label accuracy {direction_label_accuracy}")
+        print(f"orientation label accuracy {orientation_label_accuracy}")
+        print(f"direction_total_accuracy: {direction_total_accuracy}")
+        print(f"orientation_total_accuracy: {orientation_total_accuracy}")
+        print()
 
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, drop_last=False)
     with torch.no_grad():
         for data in test_loader:
-            src_image, dst_image, label = data
-            abst_pose = label[:, :3]
-            concrete_pose = label[:, 3:]
-
-            test_output = model(src_image.to(device), dst_image.to(device))
-            onehot_output = create_onehot_from_output(test_output)
-            decoded_output = onehot_decoding(onehot_output)
-
+            src_image, dst_image, direction_label, orientation_label, relative_pose = data
             
-            print(f"concrete_pose: {concrete_pose}")
-            print(f"abst_pose: {abst_pose}")
-            print(f"model's_output: {decoded_output[0]} \n")
+            test_output = model(src_image.to(device), dst_image.to(device))
+            print(f"relative_pose: {relative_pose}")
+            print(f"drirection_output_prob: {F.softmax(test_output[:, :bin_num+1], dim=1)}")
+            print(f"orientation_output_prob: {F.softmax(test_output[:, bin_num+1:], dim=1)}")
+            print()
 
             image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()
             image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
@@ -96,7 +95,6 @@ def main():
 
                 print("saving image\n")
             cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     main()
