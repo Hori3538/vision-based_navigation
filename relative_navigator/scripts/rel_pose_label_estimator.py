@@ -2,7 +2,8 @@
 
 import rospy
 from sensor_msgs.msg import CompressedImage
-from relative_navigator_msgs.msg import AbstRelPose
+# from relative_navigator_msgs.msg import AbstRelPose
+from relative_navigator_msgs.msg import RelPoseLabel
 from std_msgs.msg import Bool
 
 from dataclasses import dataclass
@@ -23,9 +24,9 @@ class Param:
     image_height: int
     observed_image_topic_name: str
 
-class AbstractRelativePoseEstimator:
+class RelPoseLabelEstimator:
     def __init__(self) -> None:
-        rospy.init_node("abstract_relative_pose_estimator")
+        rospy.init_node("relative_pose_label_estimator")
 
         self._param: Param = Param(
                 rospy.get_param("~hz", 10),
@@ -41,16 +42,17 @@ class AbstractRelativePoseEstimator:
 
         self._observed_image: Optional[torch.Tensor] = None
         self._reference_image: Optional[torch.Tensor] = None
-        self._reaching_target_pose_flag: Optional[bool] = None
 
-        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(self._param.observed_image_topic_name,
-            CompressedImage, self._observed_image_callback, queue_size=1)
-        self._reference_image_sub: rospy.Subscriber = rospy.Subscriber("/reference_image/image_raw/compressed",
-            CompressedImage, self._reference_image_callback, queue_size=1)
-        # self._reaching_target_pose_flag_sub: rospy.Subscriber = rospy.Subscriber("/reaching_target_pose_flag",
-        #         Bool, self._reaching_target_pose_flag_callback, queue_size=1)
-        self._abstract_relative_pose_pub: rospy.Publisher = rospy.Publisher("/abstract_relative_pose", AbstRelPose, queue_size=1)
-        self._reaching_goal_flag_pub: rospy.Publisher = rospy.Publisher("/reaching_goal_flag", Bool, queue_size=1)
+        self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(
+                self._param.observed_image_topic_name,
+                CompressedImage, self._observed_image_callback, queue_size=1)
+
+        self._reference_image_sub: rospy.Subscriber = rospy.Subscriber(
+                "/reference_image/image_raw/compressed",
+                CompressedImage, self._reference_image_callback, queue_size=1)
+
+        self._rel_pose_label_pub: rospy.Publisher = rospy.Publisher(
+                "/relative_pose_label_estimator/rel_pose_label", RelPoseLabel, queue_size=1)
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = self._compressed_image_to_tensor(msg)
@@ -58,8 +60,8 @@ class AbstractRelativePoseEstimator:
     def _reference_image_callback(self, msg: CompressedImage) -> None:
         self._reference_image = self._compressed_image_to_tensor(msg)
 
-    def _reaching_target_pose_flag_callback(self, msg: Bool) -> None:
-        self._reaching_target_pose_flag = msg.data
+    # def _reaching_target_pose_flag_callback(self, msg: Bool) -> None:
+    #     self._reaching_target_pose_flag = msg.data
 
     def _compressed_image_to_tensor(self, msg: CompressedImage) -> torch.Tensor:
 
@@ -74,10 +76,10 @@ class AbstractRelativePoseEstimator:
 
         return image
 
-    def _predict_abstract_relative_pose(self) -> AbstRelPose:
+    def _predict_rel_pose_label(self) -> RelPoseLabel:
         models_output: torch.Tensor = self._model(self._observed_image.to(self._device),self._reference_image.to(self._device))
         relative_pose_label: List[int] = self._models_output_to_label_list(models_output)
-        abst_rel_pose_msg = AbstRelPose()
+        abst_rel_pose_msg = RelPoseLabel()
         # rospy.loginfo("relative_pose_label: %d,%d,%d", relative_pose_label[0],relative_pose_label[1], relative_pose_label[2])
         abst_rel_pose_msg.x, abst_rel_pose_msg.y, abst_rel_pose_msg.yaw = relative_pose_label
         abst_rel_pose_msg.header.stamp = rospy.Time.now()
@@ -95,16 +97,7 @@ class AbstractRelativePoseEstimator:
 
         while not rospy.is_shutdown():
             if self._observed_image is None or self._reference_image is None: continue
-            if self._reaching_target_pose_flag == None or self._reaching_target_pose_flag:
-                abst_rel_pose_msg = self._predict_abstract_relative_pose()
-                reaching_goal_flag: bool = (abst_rel_pose_msg.x, abst_rel_pose_msg.y, abst_rel_pose_msg.yaw) == (0, 0, 0)
-                if reaching_goal_flag:
-                    reaching_goal_flag_msg: Bool = Bool()
-                    reaching_goal_flag_msg.data = reaching_goal_flag
-                    self._reaching_goal_flag_pub.publish(reaching_goal_flag_msg)
-
-                else:
-                    self._abstract_relative_pose_pub.publish(abst_rel_pose_msg)
-                    self._reaching_target_pose_flag = False;
+            abst_rel_pose_msg = self._predict_rel_pose_label()
+            self._rel_pose_label_pub.publish(abst_rel_pose_msg)
 
             rate.sleep()

@@ -16,6 +16,7 @@ add_message_files(
   ImageWithPoseArray.msg
   AbstRelPose.msg
   SimpleRelPoseLabel.msg
+  RelPoseLabel.msg
 )
 
 generate_messages(
