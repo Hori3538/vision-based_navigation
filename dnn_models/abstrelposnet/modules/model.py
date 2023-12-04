@@ -8,40 +8,39 @@ class AbstRelPosNet(nn.Module):
         super(AbstRelPosNet, self).__init__()
 
         self.features = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT).features
+
+        # first_conv2d = self.features[0][0]
+        # 最初のCNN層のチャネル数を倍にする(concatした2枚の画像を入力するため)
+        # self.features[0][0] = torch.nn.Conv2d(
+        #         in_channels=first_conv2d.in_channels * 2,
+        #         out_channels=first_conv2d.out_channels,
+        #         kernel_size=first_conv2d.kernel_size,
+        #         stride=first_conv2d.stride,
+        #         padding=first_conv2d.padding,
+        #         bias=first_conv2d.bias)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
         out_channels_of_features: int = self.features[-1][0].out_channels
-        # print(f"out_channels: {out_channels_of_features}")
         self.classifier = nn.Sequential(
+                    nn.Dropout(0.5, inplace=False),
                     nn.Linear(out_channels_of_features * 2, 256),
+                    # nn.Linear(out_channels_of_features, 256),
                     nn.ReLU(),
+                    nn.Dropout(0.5, inplace=False),
                     nn.Linear(256, bin_num*2 + 1)
                 )
-        # efficient = efficientnet_b0(weights=None)
-        # efficient = efficientnet_b0(pretrained=True)
-        # efficient.classifier = nn.Identity()
-
-        # features.classifier = nn.Sequential(nn.Identity())
-
-        # self.efficient = features
-        # print(efficient.features[-1].shape)
-        # self.fc_layers = nn.Sequential(
-        #             nn.Linear(1280 * 2, 256),
-        #             nn.ReLU(),
-        #             nn.Linear(256, bin_num*2 + 1)
-        #         )
 
     def forward(self, input1, input2):
-        # input_concatenated = torch.cat((input1,input2), dim=1)
-        # x = self.efficient(input_concatenated)
-        # print(f"cccat: {torch.cat((input1,input2), dim=1).shape}")
+        # concatenate
+        # x = torch.cat((input1,input2), dim=1)
+        # x = self.features(x)
+        # x = self.avgpool(x)
+        # x = torch.flatten(x, 1)
+
         x1 = self.features(input1)
-        # print(f"x1 shape: {x1.shape}")
         x2 = self.features(input2)
-        # print(f"x2 shape: {x2.shape}")
+
         x = torch.cat((x1, x2), dim=1)
-        # print(f"x shape: {x.shape}")
-        
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
 
@@ -49,23 +48,10 @@ class AbstRelPosNet(nn.Module):
 
 def test():
     tensor = torch.zeros(2, 3, 224, 224)
+    # tensor = torch.zeros(3, 224, 224)
     model = AbstRelPosNet()
-    # first_conv2d = model.efficient.features[0][0]
-    # model.efficient.features[0][0] = torch.nn.Conv2d(
-    #         in_channels=first_conv2d.in_channels * 2,
-    #         out_channels=first_conv2d.out_channels,
-    #         kernel_size=first_conv2d.kernel_size,
-    #         stride=first_conv2d.stride,
-    #         padding=first_conv2d.padding,
-    #         bias=first_conv2d.bias)
-    # model.efficient.features[0][0].in_channels = 6
     output = model(tensor, tensor)
     print(output.shape)
-    # print(output)
-    # print(model.efficient.features[0][0].in_channels)
-    # print(model.efficient.features[-1][0].out_channels)
-    # model.efficient.features[0][0] = torch.nn.Conv2d(6, 32, kernel_size=3, stride=2,
-    #                                                 padding=1, bias=False)
 
 if __name__ == "__main__":
     test()

@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <relative_navigator_msgs/AbstRelPose.h>
+#include <relative_navigator_msgs/RelPoseLabel.h>
 #include <tf/tf.h>
 
 #include <optional>
@@ -16,9 +16,10 @@ namespace relative_navigator
         int hz;
 
         // モデルの学習時に用いたラベリングの閾値同じ値を使う
-        float dist_to_goal_x;
-        float dist_to_goal_y;
-        float angle_to_goal;
+        float dist_to_local_goal;
+
+        int bin_num;
+        float bin_step_degree;
     };
 
     class LocalGoalGenerator
@@ -27,13 +28,15 @@ namespace relative_navigator
             LocalGoalGenerator(ros::NodeHandle &nh, ros::NodeHandle &private_nh);
             void process();
         private:
-            void abst_rel_pose_callback(const relative_navigator_msgs::AbstRelPoseConstPtr &msg);
-            geometry_msgs::PoseStamped generate_local_goal_from_abst_rel_pose(relative_navigator_msgs::AbstRelPose abst_rel_pose);
+            void rel_pose_label_callback(const relative_navigator_msgs::RelPoseLabelConstPtr &msg);
+            static geometry_msgs::PoseStamped generate_local_goal_from_rel_pose_label(
+                    relative_navigator_msgs::RelPoseLabel rel_pose_label,
+                    int bin_num, float bin_step_degree, float dist_to_local_goal);
 
-            std::optional<relative_navigator_msgs::AbstRelPose> abst_rel_pose_;
+            std::optional<relative_navigator_msgs::RelPoseLabel> rel_pose_label_;
             Param param_;
 
-            ros::Subscriber abst_rel_pose_sub_;
+            ros::Subscriber rel_pose_label_sub_;
             ros::Publisher local_goal_pub_;
     };
 }

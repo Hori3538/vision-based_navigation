@@ -4,17 +4,15 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 # from relative_navigator_msgs.msg import AbstRelPose
 from relative_navigator_msgs.msg import RelPoseLabel
-from std_msgs.msg import Bool
 
 from dataclasses import dataclass
 import torch
 import numpy as np
 import cv2
-from typing import Optional, List
+from typing import Optional
 
+import torch.nn.functional as F
 from model import AbstRelPosNet
-from onehot_conversion import create_onehot_from_output, onehot_decoding
-
 
 @dataclass(frozen=True)
 class Param:
@@ -35,7 +33,8 @@ class RelPoseLabelEstimator:
                 rospy.get_param("~image_height", 224),
                 rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
             )
-        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device: str = "cpu"
         self._model: AbstRelPosNet = AbstRelPosNet().to(self._device)
         self._model.load_state_dict(torch.load(self._param.weight_path, map_location=torch.device(self._device)))
         self._model.eval()
@@ -60,9 +59,6 @@ class RelPoseLabelEstimator:
     def _reference_image_callback(self, msg: CompressedImage) -> None:
         self._reference_image = self._compressed_image_to_tensor(msg)
 
-    # def _reaching_target_pose_flag_callback(self, msg: Bool) -> None:
-    #     self._reaching_target_pose_flag = msg.data
-
     def _compressed_image_to_tensor(self, msg: CompressedImage) -> torch.Tensor:
 
         np_image: np.ndarray = cv2.imdecode(np.frombuffer(
@@ -77,20 +73,26 @@ class RelPoseLabelEstimator:
         return image
 
     def _predict_rel_pose_label(self) -> RelPoseLabel:
-        models_output: torch.Tensor = self._model(self._observed_image.to(self._device),self._reference_image.to(self._device))
-        relative_pose_label: List[int] = self._models_output_to_label_list(models_output)
-        abst_rel_pose_msg = RelPoseLabel()
+        models_output: torch.Tensor = self._model(self._observed_image.to(self._device),
+                                                  self._reference_image.to(self._device)).squeeze()
+        bin_num: int = models_output.size(dim=0) // 2
+        direction_probs: torch.Tensor = F.softmax(models_output[:bin_num+1], 0)
+        orientation_probs: torch.Tensor = F.softmax(models_output[bin_num+1:], 0)
+
+        direction_max_idx = direction_probs.max(0).indices
+        orientation_max_idx = orientation_probs.max(0).indices
+
+        rel_pose_label_msg = RelPoseLabel()
+        rel_pose_label_msg.header.stamp = rospy.Time.now()
+
+        rel_pose_label_msg.direction_label = direction_max_idx
+        rel_pose_label_msg.orientation_label = orientation_max_idx
+
+        rel_pose_label_msg.direction_label_conf = direction_probs[direction_max_idx]
+        rel_pose_label_msg.orientation_label_conf = orientation_probs[orientation_max_idx]
         # rospy.loginfo("relative_pose_label: %d,%d,%d", relative_pose_label[0],relative_pose_label[1], relative_pose_label[2])
-        abst_rel_pose_msg.x, abst_rel_pose_msg.y, abst_rel_pose_msg.yaw = relative_pose_label
-        abst_rel_pose_msg.header.stamp = rospy.Time.now()
 
-        return abst_rel_pose_msg
-
-    def _models_output_to_label_list(self, models_output: torch.Tensor) -> List[int]:
-        one_hot_encoded_output: torch.Tensor = create_onehot_from_output(models_output)
-        decoded_output: torch.Tensor = onehot_decoding(one_hot_encoded_output)
-
-        return decoded_output.squeeze().tolist()
+        return rel_pose_label_msg
 
     def process(self) -> None:
         rate = rospy.Rate(self._param.hz)
