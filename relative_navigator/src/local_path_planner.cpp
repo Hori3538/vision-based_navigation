@@ -1,3 +1,5 @@
+#include "geometry_msgs/PoseStamped.h"
+#include "ros/publisher.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -32,11 +34,15 @@ namespace relative_navigator
 
     void LocalPathPlanner::local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg)
     {
-        if(!local_goal_.has_value() || reaching_target_pose_flag_){
-            local_goal_ = *msg;
-            reaching_target_point_flag_ = false;
-            reaching_target_pose_flag_ = false;
-        }
+        local_goal_ = *msg;
+        reaching_target_point_flag_ = false;
+        reaching_target_pose_flag_ = false;
+        // if(!local_goal_.has_value() || reaching_target_pose_flag_){
+        // if(!local_goal_.has_value() || reaching_target_pose_flag_){
+        //     local_goal_ = *msg;
+        //     reaching_target_point_flag_ = false;
+        //     reaching_target_pose_flag_ = false;
+        // }
     }
 
     void LocalPathPlanner::odometry_callback(const nav_msgs::OdometryConstPtr &msg)
@@ -56,13 +62,15 @@ namespace relative_navigator
 
     double LocalPathPlanner::adjust_yaw(double yaw)
     {
-        if(yaw > M_PI){yaw -= 2*M_PI;}
-        if(yaw < -M_PI){yaw += 2*M_PI;}
+        // if(yaw > M_PI){yaw -= 2*M_PI;}
+        // if(yaw < -M_PI){yaw += 2*M_PI;}
+        if(yaw > M_PI) return yaw - 2*M_PI;
+        if(yaw < -M_PI) return yaw + 2*M_PI;
 
         return yaw;
     }
 
-    geometry_msgs::Pose LocalPathPlanner::calc_previous_base_to_now_base()
+    geometry_msgs::Pose LocalPathPlanner::calc_previous_base_to_now_base() const
     {
         double dx = current_odometry_.pose.pose.position.x - 
             previous_odometry_.value().pose.pose.position.x;
@@ -95,19 +103,19 @@ namespace relative_navigator
         local_goal_.value().header.stamp = ros::Time::now();
     }
 
-    void LocalPathPlanner::robot_move(State &state, double velocity, double yawrate)
+    void LocalPathPlanner::robot_move(State &state, double velocity, double yawrate, double dt)
     {
-        state.yaw += yawrate * param_.predict_dt;
+        state.yaw += yawrate * dt;
         state.yaw = adjust_yaw(state.yaw);
 
-        state.x += velocity * std::cos(state.yaw) * param_.predict_dt;
-        state.y += velocity * std::sin(state.yaw) * param_.predict_dt;
+        state.x += velocity * std::cos(state.yaw) * dt;
+        state.y += velocity * std::sin(state.yaw) * dt;
 
         state.velocity = velocity;
         state.yawrate = yawrate;
     }
 
-    std::vector<double> LocalPathPlanner::calc_dynamic_window()
+    std::vector<double> LocalPathPlanner::calc_dynamic_window() const
     {
         std::vector<double> Vs = {param_.min_speed, param_.max_speed, -param_.max_yawrate, param_.max_yawrate};
         std::vector<double> Vd(4);
@@ -124,46 +132,50 @@ namespace relative_navigator
         return dynamic_window;
     }
 
-    std::vector<State> LocalPathPlanner::calc_trajectory(double velocity, double yawrate)
+    std::vector<State> LocalPathPlanner::calc_trajectory(double velocity, double yawrate) const
     {
         State state = {0.0, 0.0, 0.0, 0.0, 0.0};
         std::vector<State> trajectory;
         for(double t=0.0; t<=param_.predict_time; t+=param_.predict_dt){
-            robot_move(state, velocity, yawrate);
+            robot_move(state, velocity, yawrate, param_.predict_dt);
             trajectory.push_back(state);
         }
 
         return trajectory;
     }
 
-    double LocalPathPlanner::calc_heading_score_to_target_point(std::vector<State> &trajectory)
+    double LocalPathPlanner::calc_heading_score_to_target_point(std::vector<State> &trajectory,
+                                                                geometry_msgs::PoseStamped target_pose)
     {
         State last_state = trajectory.back();
-        double angle_to_target_point = std::atan2(local_goal_.value().pose.position.y - last_state.y,
-                                          local_goal_.value().pose.position.x - last_state.x);
+        double angle_to_target_point = std::atan2(target_pose.pose.position.y - last_state.y,
+                                          target_pose.pose.position.x - last_state.x);
         angle_to_target_point -= last_state.yaw;
         double heading_score = M_PI - std::abs(adjust_yaw(angle_to_target_point));
 
         return heading_score;
     }
 
-    double LocalPathPlanner::calc_heading_score_to_target_pose(std::vector<State> &trajectory)
+    double LocalPathPlanner::calc_heading_score_to_target_pose(std::vector<State> &trajectory,
+                                                               geometry_msgs::PoseStamped target_pose)
     {
         State last_state = trajectory.back();
-        double angle_to_target_pose = adjust_yaw(tf2::getYaw(local_goal_.value().pose.orientation) - last_state.yaw);
+        double angle_to_target_pose = adjust_yaw(tf2::getYaw(target_pose.pose.orientation) - last_state.yaw);
         double heading_score = M_PI - std::abs(angle_to_target_pose);
 
         return heading_score;
     }
 
-    double LocalPathPlanner::calc_approaching_score(std::vector<State> &trajectory)
+    double LocalPathPlanner::calc_approaching_score(std::vector<State> &trajectory,
+                                                    geometry_msgs::PoseStamped target_pose)
     {
         State last_state = trajectory.back();
-        double delta_x = local_goal_.value().pose.position.x - last_state.x;
-        double delta_y = local_goal_.value().pose.position.y - last_state.y;
-        double dist_paths_end_to_goal = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+        double delta_x = target_pose.pose.position.x - last_state.x;
+        double delta_y = target_pose.pose.position.y - last_state.y;
+        // double dist_paths_end_to_goal = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
+        double dist_paths_end_to_goal = std::hypot(delta_x, delta_y);
 
-        double dist_paths_start_to_goal = calc_dist_from_pose(local_goal_.value().pose);
+        double dist_paths_start_to_goal = calc_dist_from_pose(target_pose.pose);
         double approaching_score = dist_paths_start_to_goal - dist_paths_end_to_goal;
 
         return approaching_score;
@@ -192,13 +204,15 @@ namespace relative_navigator
 
                 if(reaching_target_point_flag_)
                 {
-                    heading_score = calc_heading_score_to_target_pose(trajectory);
-                    approaching_score = -std::abs(calc_approaching_score(trajectory));
+                    heading_score = calc_heading_score_to_target_pose(trajectory, local_goal_.value());
+                    approaching_score = -std::abs(calc_approaching_score(trajectory, local_goal_.value()));
                 }
                 else
                 {
-                    heading_score = param_.heading_score_gain * calc_heading_score_to_target_point(trajectory);
-                    approaching_score = param_.approaching_score_gain * calc_approaching_score(trajectory);
+                    heading_score = param_.heading_score_gain * 
+                                    calc_heading_score_to_target_point(trajectory, local_goal_.value());
+                    approaching_score = param_.approaching_score_gain * 
+                                        calc_approaching_score(trajectory, local_goal_.value());
                 }
                 double sum_score = heading_score + approaching_score;
 
@@ -217,15 +231,17 @@ namespace relative_navigator
         return input;
     }
 
-    void LocalPathPlanner::publish_control_input(double velocity, double yawrate)
+    void LocalPathPlanner::publish_control_input(double velocity, double yawrate,
+                                                 const ros::Publisher& publisher)
     {
         geometry_msgs::Twist control_input;
         control_input.linear.x = velocity;
         control_input.angular.z = yawrate; 
-        control_input_pub_.publish(control_input);
+        publisher.publish(control_input);
     }
 
-    void LocalPathPlanner::visualize_trajectory(std::vector<State> &trajectory, ros::Publisher &publisher)
+    void LocalPathPlanner::visualize_trajectory(const std::vector<State> &trajectory,
+                                                const ros::Publisher &publisher)
     {
         nav_msgs::Path local_path;
         local_path.header.frame_id = "base_link";
@@ -240,29 +256,29 @@ namespace relative_navigator
         publisher.publish(local_path);
     }
 
-    void LocalPathPlanner::reaching_judge()
+    std::pair<bool, bool> LocalPathPlanner::reaching_judge() const
     {
+        bool reaching_target_point_flag = false;
+        bool reaching_target_pose_flag = false;
+
         double dist_to_target = calc_dist_from_pose(local_goal_.value().pose);
         double yaw_to_target = tf2::getYaw(local_goal_.value().pose.orientation);
 
         if(dist_to_target < param_.goal_dist_th)
         {
-            reaching_target_point_flag_ = true;
-            if(abs(yaw_to_target) < param_.goal_yaw_th) reaching_target_pose_flag_ = true;
-            else reaching_target_pose_flag_ = false;
+            reaching_target_point_flag = true;
+            if(abs(yaw_to_target) < param_.goal_yaw_th) reaching_target_pose_flag = true;
         }
-        else
-        {
-            reaching_target_point_flag_ = false;
-            reaching_target_pose_flag_ = false;
-        }
+
+        return {reaching_target_point_flag, reaching_target_pose_flag};
     }
 
-    void LocalPathPlanner::publish_reaching_flag()
+    void LocalPathPlanner::publish_reaching_flag(const ros::Publisher &publisher, 
+                                                 bool reaching_flag)
     {
         std_msgs::Bool reaching_target_pose_flag_msg;
-        reaching_target_pose_flag_msg.data = reaching_target_pose_flag_;
-        reaching_target_pose_flag_pub_.publish(reaching_target_pose_flag_msg);
+        reaching_target_pose_flag_msg.data = reaching_flag;
+        publisher.publish(reaching_target_pose_flag_msg);
     }
 
     double LocalPathPlanner::calc_dist_from_pose(geometry_msgs::Pose pose)
@@ -275,24 +291,24 @@ namespace relative_navigator
         ros::Rate loop_rate(param_.hz);
         while(ros::ok())
         {
-            ros::spinOnce();
-
             if(local_goal_.has_value())
             {
-                reaching_judge();
+                std::tie(reaching_target_point_flag_, reaching_target_pose_flag_) = reaching_judge();
 
                 std::pair<double, double> input = decide_input();
-                publish_control_input(input.first, input.second);
-                publish_reaching_flag();
+                publish_control_input(input.first, input.second, control_input_pub_);
+                publish_reaching_flag(reaching_target_pose_flag_pub_, reaching_target_pose_flag_);
 
                 for(auto& trajectory : trajectories_)
-                {
                     visualize_trajectory(trajectory, candidate_local_path_pub_);
-                }
+
                 visualize_trajectory(best_trajectory_, best_local_path_pub_);
-                local_goal_pub_.publish(local_goal_.value());
+                // local_goal_pub_.publish(local_goal_.value());
+                //
+                if(reaching_target_pose_flag_) local_goal_.reset();
             }
 
+            ros::spinOnce();
             loop_rate.sleep();
         }
     }

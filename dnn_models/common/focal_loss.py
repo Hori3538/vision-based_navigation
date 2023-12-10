@@ -122,3 +122,21 @@ class Loss(torch.nn.Module):
         cb_loss = focal_loss(logits, labels, alpha=weights, gamma=self.fl_gamma)
 
         return cb_loss
+
+def test():
+    outputs = torch.tensor([
+            [0.1, 0.2, 0.7, 0.0],
+            [0.1, 0.2, 0.7, 0.0]
+        ], dtype=torch.float32)
+    targets = torch.tensor([
+            [0, 0, 1, 0],
+            [1, 0, 0, 0]
+        ], dtype=torch.float32)
+
+    # criterion = AbstPoseLoss(focal_gamma=1, samples_per_class=[5, 5, 20, 5], class_balanced=True, class_balance_beta=0.999)
+    criterion = Loss(fl_gamma=1, samples_per_class=[5, 5, 5, 15], class_balanced=False, beta=0.99)
+    loss = criterion(outputs, targets)
+    print(loss)
+
+if __name__ == "__main__":
+    test()

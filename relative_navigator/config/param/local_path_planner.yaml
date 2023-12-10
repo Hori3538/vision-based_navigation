@@ -12,7 +12,7 @@ approaching_score_gain: 1.0
 
 robot_radius: 0.5
 max_speed: 0.3
-min_speed: -0.1
+min_speed: 0.0
 max_yawrate: 2.0
-max_accel: 5.0
-max_dyawrate: 5.0
+max_accel: 10.0
+max_dyawrate: 6.0

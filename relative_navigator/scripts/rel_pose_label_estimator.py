@@ -2,7 +2,6 @@
 
 import rospy
 from sensor_msgs.msg import CompressedImage
-# from relative_navigator_msgs.msg import AbstRelPose
 from relative_navigator_msgs.msg import RelPoseLabel
 
 from dataclasses import dataclass
@@ -51,7 +50,7 @@ class RelPoseLabelEstimator:
                 CompressedImage, self._reference_image_callback, queue_size=1)
 
         self._rel_pose_label_pub: rospy.Publisher = rospy.Publisher(
-                "/relative_pose_label_estimator/rel_pose_label", RelPoseLabel, queue_size=1)
+                "/rel_pose_label_estimator/rel_pose_label", RelPoseLabel, queue_size=1)
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = self._compressed_image_to_tensor(msg)
@@ -90,7 +89,6 @@ class RelPoseLabelEstimator:
 
         rel_pose_label_msg.direction_label_conf = direction_probs[direction_max_idx]
         rel_pose_label_msg.orientation_label_conf = orientation_probs[orientation_max_idx]
-        # rospy.loginfo("relative_pose_label: %d,%d,%d", relative_pose_label[0],relative_pose_label[1], relative_pose_label[2])
 
         return rel_pose_label_msg
 
@@ -99,7 +97,8 @@ class RelPoseLabelEstimator:
 
         while not rospy.is_shutdown():
             if self._observed_image is None or self._reference_image is None: continue
-            abst_rel_pose_msg = self._predict_rel_pose_label()
+            abst_rel_pose_msg: RelPoseLabel = self._predict_rel_pose_label()
+            self._observed_image = None
             self._rel_pose_label_pub.publish(abst_rel_pose_msg)
 
             rate.sleep()

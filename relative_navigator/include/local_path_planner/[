@@ -1,6 +1,7 @@
 #ifndef LOCAL_PATH_PLANNER
 #define LOCAL_PATH_PLANNER
 
+#include "ros/publisher.h"
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
@@ -58,24 +59,20 @@ namespace relative_navigator
         private:
             void local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg);
             void odometry_callback(const nav_msgs::OdometryConstPtr &msg);
-            geometry_msgs::Pose calc_previous_base_to_now_base() const;
+            geometry_msgs::Pose calc_previous_base_to_now_base();
             static double adjust_yaw(double yaw);
-            void update_local_goal(geometry_msgs::Pose previous_base_to_now_base);
+            // void update_local_goal(geometry_msgs::Pose previous_base_to_now_base);
             static void robot_move(State &state, double velocity, double yawrate, double dt);
             std::vector<double> calc_dynamic_window() const;
             std::vector<State> calc_trajectory(double velocity, double yawrate) const;
-            static double calc_heading_score_to_target_point(std::vector<State> &trajectory,
-                                                             geometry_msgs::PoseStamped target_pose);
-            static double calc_heading_score_to_target_pose(std::vector<State> &trajectory,
-                                                     geometry_msgs::PoseStamped target_pose);
-            static double calc_approaching_score(std::vector<State> &trajectory,
-                                          geometry_msgs::PoseStamped target_pose);
+            static double calc_heading_score_to_target_point(std::vector<State> &trajectory);
+            double calc_heading_score_to_target_pose(std::vector<State> &trajectory);
+            double calc_approaching_score(std::vector<State> &trajectory);
             std::pair<double, double> decide_input();
-            static void publish_control_input(double velocity, double yawrate,
-                                              const ros::Publisher& publisher);
+            void publish_control_input(double velocity, double yawrate);
             static void visualize_trajectory(const std::vector<State> &trajectory,
                                       const ros::Publisher &publisher);
-            std::pair<bool, bool> reaching_judge() const;
+            void reaching_judge();
             static void publish_reaching_flag(const ros::Publisher &publisher, bool reaching_flag);
             static double calc_dist_from_pose(geometry_msgs::Pose pose);
             Param param_;
