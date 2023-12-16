@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 import cv2
 import numpy as np
 
-from directionnet import DirectionNet
-from dataset_for_directionnet import DatasetForDirectionNet
+from orientationnet import OrientationNet
+from dataset_for_orientationnet import DatasetForOrientationNet
 
 def main():
     print("=== test start ==")
@@ -23,51 +23,51 @@ def main():
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     device ="cpu"
 
-    model = DirectionNet().to(device)
+    model = OrientationNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))
     model.eval()
 
-    test_dataset = DatasetForDirectionNet(args.dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(test_dataset)
+    test_dataset = DatasetForOrientationNet(args.dataset_dirs)
+    DatasetForOrientationNet.equalize_label_counts(test_dataset)
     test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
 
-    direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(test_dataset)
-    print(f"direction_label_counts: {direction_label_counts}")
+    orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(test_dataset)
+    print(f"orientation_label_counts: {orientation_label_counts}")
 
     data_num = test_dataset.__len__()
     print(f"data num: {data_num}")
 
-    label_num: int = len(direction_label_counts)
+    bin_num: int = len(orientation_label_counts)
     with torch.no_grad():
-        direction_label_correct_count = torch.tensor([0] * label_num)
+        orientation_label_correct_count = torch.tensor([0] * bin_num)
         for data in test_loader:
-            src_image, dst_image, direction_label, _, relative_pose = data
+            src_image, dst_image, _, orientation_label, relative_pose = data
 
             test_output = model(src_image.to(device), dst_image.to(device))
-            onehot_output_direction = F.one_hot(test_output.max(1).indices,
-                                                num_classes=label_num)
-            direction_judge_tensor = torch.logical_and(
-                    onehot_output_direction == direction_label.to(device),
-                    onehot_output_direction == 1)
+            onehot_output_orientation = F.one_hot(test_output.max(1).indices,
+                                                num_classes=bin_num)
+            orientation_judge_tensor = torch.logical_and(
+                    onehot_output_orientation == orientation_label.to(device),
+                    onehot_output_orientation == 1)
 
-            direction_label_correct_count += torch.sum(direction_judge_tensor.to("cpu"), 0)
+            orientation_label_correct_count += torch.sum(orientation_judge_tensor.to("cpu"), 0)
 
-        direction_label_accuracy = direction_label_correct_count / direction_label_counts
-        direction_total_accuracy = direction_label_correct_count.sum() / direction_label_counts.sum()
+        orientation_label_accuracy = orientation_label_correct_count / orientation_label_counts
+        orientation_total_accuracy = orientation_label_correct_count.sum() / orientation_label_counts.sum()
 
-        print(f"direction label accuracy {direction_label_accuracy}")
-        print(f"direction_total_accuracy: {direction_total_accuracy}")
+        print(f"orientation label accuracy {orientation_label_accuracy}")
+        print(f"orientation_total_accuracy: {orientation_total_accuracy}")
         print()
 
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True, drop_last=False)
     with torch.no_grad():
         for data in test_loader:
-            src_image, dst_image, direction_label, _, relative_pose = data
+            src_image, dst_image, _, orientation_label, relative_pose = data
             
             test_output = model(src_image.to(device), dst_image.to(device))
             print(f"relative_pose: {relative_pose}")
-            print(f"direction_label: {direction_label}")
-            print(f"drirection_output_prob: {F.softmax(test_output, dim=1)}")
+            print(f"orientation_label: {orientation_label}")
+            print(f"orientation_output_prob: {F.softmax(test_output, dim=1)}")
             print()
 
             image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()

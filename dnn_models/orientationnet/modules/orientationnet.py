@@ -3,9 +3,9 @@ import torch.nn as nn
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 import torch.nn.functional as F
 
-class DirectionNet(nn.Module):
+class OrientationNet(nn.Module):
     def __init__(self, bin_num: int = 3) -> None:
-        super(DirectionNet, self).__init__()
+        super(OrientationNet, self).__init__()
 
         self.features = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT).features
 
@@ -18,7 +18,6 @@ class DirectionNet(nn.Module):
                 stride=first_conv2d.stride,
                 padding=first_conv2d.padding,
                 bias=first_conv2d.bias)
-
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
         out_channels_of_features: int = self.features[-1][0].out_channels
@@ -28,7 +27,7 @@ class DirectionNet(nn.Module):
                     nn.Linear(out_channels_of_features, 256),
                     nn.ReLU(),
                     nn.Dropout(0.2, inplace=False),
-                    nn.Linear(256, bin_num + 2)
+                    nn.Linear(256, bin_num)
                 )
 
     def forward(self, input1, input2):
@@ -50,7 +49,7 @@ class DirectionNet(nn.Module):
 def test():
     tensor = torch.zeros(2, 3, 224, 224)
     # tensor = torch.zeros(3, 224, 224)
-    model = DirectionNet()
+    model = OrientationNet()
     output = model(tensor, tensor)
     print(output.shape)
 

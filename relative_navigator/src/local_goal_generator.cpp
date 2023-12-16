@@ -19,6 +19,24 @@ namespace relative_navigator
         rel_pose_label_ = *msg;
     }
 
+    std::vector<float> LocalGoalGenerator::calc_angle_for_each_label(int bin_num, float bin_step_degree)
+    {
+        std::vector<float> angle_for_each_angle;
+        for(int i=0; i<bin_num; i++)
+        {
+            float angle_degree = bin_step_degree * int(bin_num / 2) - bin_step_degree * i;
+            angle_for_each_angle.push_back(angle_degree * (M_PI/180)); // degree to radian
+        }
+
+        return angle_for_each_angle;
+    }
+
+    float LocalGoalGenerator::calc_weighted_mean_angle(std::vector<float> angle_for_each_labe,
+                                                  std::vector<float> orientation_label_conf)
+    {
+
+    }
+
     geometry_msgs::PoseStamped LocalGoalGenerator::generate_local_goal_from_rel_pose_label(
             relative_navigator_msgs::RelPoseLabel rel_pose_label, int bin_num,
             float bin_step_degree, float dist_to_local_goal) 

@@ -11,12 +11,16 @@ import cv2
 from typing import Optional
 
 import torch.nn.functional as F
-from model import AbstRelPosNet
+# from model import AbstRelPosNet
+from directionnet import DirectionNet
+from orientationnet import OrientationNet
 
 @dataclass(frozen=True)
 class Param:
     hz: float
-    weight_path: str
+    # weight_path: str
+    direction_net_weight_path: str
+    orientation_net_weight_path: str
     image_width: int
     image_height: int
     observed_image_topic_name: str
@@ -27,16 +31,21 @@ class RelPoseLabelEstimator:
 
         self._param: Param = Param(
                 rospy.get_param("~hz", 10),
-                rospy.get_param("~weight_path", "/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/dkan_perimeter_0130_duplicate_test_20000/best_loss.pt"),
+                rospy.get_param("~direction_net_weight_path", ""),
+                rospy.get_param("~orientation_net_weight_path", ""),
                 rospy.get_param("~image_width", 224),
                 rospy.get_param("~image_height", 224),
                 rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
             )
         # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
         self._device: str = "cpu"
-        self._model: AbstRelPosNet = AbstRelPosNet().to(self._device)
-        self._model.load_state_dict(torch.load(self._param.weight_path, map_location=torch.device(self._device)))
-        self._model.eval()
+        self._direction_net: DirectionNet = DirectionNet().to(self._device)
+        self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
+        self._direction_net.eval()
+
+        self._orientation_net: OrientationNet = OrientationNet().to(self._device)
+        self._orientation_net.load_state_dict(torch.load(self._param.orientation_net_weight_path, map_location=torch.device(self._device)))
+        self._orientation_net.eval()
 
         self._observed_image: Optional[torch.Tensor] = None
         self._reference_image: Optional[torch.Tensor] = None
@@ -71,12 +80,37 @@ class RelPoseLabelEstimator:
 
         return image
 
+    # def _predict_rel_pose_label(self) -> RelPoseLabel:
+    #     models_output: torch.Tensor = self._direction_net(self._observed_image.to(self._device),
+    #                                               self._reference_image.to(self._device)).squeeze()
+    #     bin_num: int = models_output.size(dim=0) // 2
+    #     direction_probs: torch.Tensor = F.softmax(models_output[:bin_num+1], 0)
+    #     orientation_probs: torch.Tensor = F.softmax(models_output[bin_num+1:], 0)
+    #
+    #     direction_max_idx = direction_probs.max(0).indices
+    #     orientation_max_idx = orientation_probs.max(0).indices
+    #
+    #     rel_pose_label_msg = RelPoseLabel()
+    #     rel_pose_label_msg.header.stamp = rospy.Time.now()
+    #
+    #     rel_pose_label_msg.direction_label = direction_max_idx
+    #     rel_pose_label_msg.orientation_label = orientation_max_idx
+    #
+    #     rel_pose_label_msg.direction_label_conf = direction_probs[direction_max_idx]
+    #     rel_pose_label_msg.orientation_label_conf = orientation_probs[orientation_max_idx]
+    #
+    #     return rel_pose_label_msg
+
     def _predict_rel_pose_label(self) -> RelPoseLabel:
-        models_output: torch.Tensor = self._model(self._observed_image.to(self._device),
+        direction_net_output: torch.Tensor = self._direction_net(self._observed_image.to(self._device),
                                                   self._reference_image.to(self._device)).squeeze()
-        bin_num: int = models_output.size(dim=0) // 2
-        direction_probs: torch.Tensor = F.softmax(models_output[:bin_num+1], 0)
-        orientation_probs: torch.Tensor = F.softmax(models_output[bin_num+1:], 0)
+        orientation_net_output: torch.Tensor = self._orientation_net(self._observed_image.to(self._device),
+                                                  self._reference_image.to(self._device)).squeeze()
+        # direction_label_num: int = direction_net_output.size(dim=0)
+        # orientation_label_num: int = orientation_net_output.size(dim=0)
+
+        direction_probs: torch.Tensor = F.softmax(direction_net_output, 0)
+        orientation_probs: torch.Tensor = F.softmax(orientation_net_output, 0)
 
         direction_max_idx = direction_probs.max(0).indices
         orientation_max_idx = orientation_probs.max(0).indices
@@ -87,8 +121,8 @@ class RelPoseLabelEstimator:
         rel_pose_label_msg.direction_label = direction_max_idx
         rel_pose_label_msg.orientation_label = orientation_max_idx
 
-        rel_pose_label_msg.direction_label_conf = direction_probs[direction_max_idx]
-        rel_pose_label_msg.orientation_label_conf = orientation_probs[orientation_max_idx]
+        rel_pose_label_msg.direction_label_conf = direction_probs.tolist()
+        rel_pose_label_msg.orientation_label_conf = orientation_probs.tolist()
 
         return rel_pose_label_msg
 

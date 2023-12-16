@@ -29,6 +29,9 @@ namespace relative_navigator
             void process();
         private:
             void rel_pose_label_callback(const relative_navigator_msgs::RelPoseLabelConstPtr &msg);
+            static std::vector<float> calc_angle_for_each_label(int bin_num, float bin_step_degree); // angle[rad]
+            static float calc_weighted_mean_angle(std::vector<float> angle_for_each_labe,
+                                                  std::vector<float> orientation_label_conf);
             static geometry_msgs::PoseStamped generate_local_goal_from_rel_pose_label(
                     relative_navigator_msgs::RelPoseLabel rel_pose_label,
                     int bin_num, float bin_step_degree, float dist_to_local_goal);
