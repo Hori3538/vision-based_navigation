@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(relative_navigator)
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++2a)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(catkin REQUIRED COMPONENTS

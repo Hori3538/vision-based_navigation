@@ -26,7 +26,6 @@ class DatasetGeneratorForOrientationNet(DatasetGenerator):
     def __init__(self, config: ConfigForOrientationNet, bag: Bag, bag_id: int) -> None:
         super().__init__(config, bag, bag_id)
         self._config:ConfigForOrientationNet = config
-        # self._used_index_list: list = []
 
         # set param by user-defined param
         bin_num: int = config.fov_degree // config.bin_step_degree
@@ -54,7 +53,6 @@ class DatasetGeneratorForOrientationNet(DatasetGenerator):
 
     def _generate_data_from_reference_points(self, reference_point1: ReferencePoint,
             reference_point2: ReferencePoint) -> None:
-        # if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
 
         images = (self._compressed_image_to_tensor(reference_point1.image),
                 self._compressed_image_to_tensor(reference_point2.image))

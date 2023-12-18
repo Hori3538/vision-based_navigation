@@ -26,7 +26,6 @@ class DatasetGeneratorForDirectionNet(DatasetGenerator):
     def __init__(self, config: ConfigForDirectionNet, bag: Bag, bag_id: int) -> None:
         super().__init__(config, bag, bag_id)
         self._config:ConfigForDirectionNet = config
-        # self._used_index_list: list = []
 
         # set param by user-defined param
         bin_num: int = config.fov_degree // config.bin_step_degree
@@ -54,7 +53,6 @@ class DatasetGeneratorForDirectionNet(DatasetGenerator):
 
     def _generate_data_from_reference_points(self, reference_point1: ReferencePoint,
             reference_point2: ReferencePoint) -> None:
-        # if reference_point1.point_index in self._used_index_list or reference_point2.point_index in self._used_index_list: return
 
         images = (self._compressed_image_to_tensor(reference_point1.image),
                 self._compressed_image_to_tensor(reference_point2.image))
@@ -64,14 +62,13 @@ class DatasetGeneratorForDirectionNet(DatasetGenerator):
         if not self._is_appropriate_pair(reference_point1, reference_point2): return
 
         direction_label: List[float] = self._to_direction_label(relative_odom)
-        # orientation_label: List[float] = self._to_orientation_label(relative_odom)
-        orientation_label: List[float] = [-1] * self._bin_num
+        orientation_label: List[float] = self._to_orientation_label(relative_odom)
+        # orientation_label: List[float] = [-1] * self._bin_num
 
         self._save_data(images,
                 torch.tensor(direction_label, dtype=torch.float32),
                 torch.tensor(orientation_label, dtype=torch.float32),
                 torch.tensor(relative_odom, dtype=torch.float32))
-        # self._used_index_list += [reference_point1.point_index, reference_point2.point_index]
 
     # direction label はどのbinが勾配方向かをone-hot形式で表す 
     # 勾配がない場合,[bin_num]=1 negativeデータの場合[bin_num+1]=1
@@ -90,13 +87,13 @@ class DatasetGeneratorForDirectionNet(DatasetGenerator):
         return direction_label
 
     # orientation label はどのbinが回転方向かをone-hot形式で表す
-    # def _to_orientation_label(self, relative_pose: List[float]) -> List[float]:
-    #     orientation_label: List[float] = [0] * self._bin_num
-    #
-    #     bin_no: int = self._allocate_yaw_to_bin(relative_pose[2])
-    #     orientation_label[bin_no] = 1
-    #
-    #     return orientation_label
+    def _to_orientation_label(self, relative_pose: List[float]) -> List[float]:
+        orientation_label: List[float] = [0] * self._bin_num
+
+        bin_no: int = self._allocate_yaw_to_bin(relative_pose[2])
+        orientation_label[bin_no] = 1
+
+        return orientation_label
     
     def _is_appropriate_pair(self, reference_point1: ReferencePoint, reference_point2: ReferencePoint) -> bool:
         # この場合atan2がバグるので先に処理

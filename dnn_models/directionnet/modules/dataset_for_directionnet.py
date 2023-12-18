@@ -11,11 +11,8 @@ import random
 from training_data import TrainingData
 
 class DatasetForDirectionNet(Dataset):
-    # def __init__(self, dataset_dir: str, use_transform: bool = False) -> None:
     def __init__(self, dataset_dirs: List[str], use_transform: bool = False) -> None:
         data_path = []
-        # for data in iglob(os.path.join(dataset_dir, "*")):
-        #     data_path.append(data)
         for dataset_dir in dataset_dirs:
             for data in iglob(os.path.join(dataset_dir, "*")):
                 data_path.append(data)
@@ -35,10 +32,8 @@ class DatasetForDirectionNet(Dataset):
         return len(self._data_path)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, ...]:
-    # def __getitem__(self, idx: int) -> List[torch.Tensor]:
         data: TrainingData = torch.load(self._data_path[idx])
         src, dst, direction_label, orientation_label, relative_pose = (
-        # src, dst, direction_label, _, relative_pose = (
                     (data.src_image/255).permute(2, 0, 1),
                     (data.dst_image/255).permute(2, 0, 1),
                     data.direction_label.clone().detach(),
@@ -49,13 +44,10 @@ class DatasetForDirectionNet(Dataset):
             src, dst = self._transform(src), self._transform(dst)
 
         return src, dst, direction_label, orientation_label, relative_pose
-        # return src, dst, direction_label, relative_pose
 
-    # def equalize_label_counts(self, dataset) -> None:
     @staticmethod
     def equalize_label_counts(dataset) -> None:
         
-        # direction_label_counts = self.count_data_for_each_label(dataset); 
         direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset); 
         surplus_label_coutns = direction_label_counts - \
                 direction_label_counts[direction_label_counts != 0].min()
@@ -73,21 +65,16 @@ class DatasetForDirectionNet(Dataset):
     # def count_data_for_each_label(dataset) -> Tuple[torch.Tensor, ...]:
     def count_data_for_each_label(dataset) -> torch.Tensor:
         label_num: int = len(dataset[0][2])
-        # bin_num: int = len(dataset[0][3])
 
         dataloader = DataLoader(dataset, batch_size=1000, shuffle=False, drop_last=False)
         direction_label_counts: torch.Tensor = torch.tensor([0] * label_num, dtype=torch.float)
-        # orientation_label_counts: torch.Tensor = torch.tensor([0] * bin_num, dtype=torch.float)
 
         for batch in dataloader:
             data = TrainingData(*batch)
             direction_label = data.direction_label
-            # orientation_label = data.orientation_label
 
             direction_label_counts += torch.sum(direction_label, 0)
-            # orientation_label_counts += torch.sum(orientation_label, 0)
 
-        # return direction_label_counts, orientation_label_counts
         return direction_label_counts
 
 def test() -> None:
@@ -104,7 +91,7 @@ def test() -> None:
     # データ確認用loader
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
-    # DatasetForDirectionNet.equalize_label_counts(dataset)
+    DatasetForDirectionNet.equalize_label_counts(dataset)
     data_len: int = dataset.__len__()
     print(f"data len: {data_len}")
     direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
@@ -119,10 +106,8 @@ def test() -> None:
     # direction_label_counts, orientation_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
 
     direction_label_ratio: torch.Tensor = direction_label_counts / torch.sum(direction_label_counts)
-    # orientation_label_ratio: torch.Tensor = orientation_label_counts / torch.sum(orientation_label_counts)
 
     print(f"direction_label_ratio: {direction_label_ratio}")
-    # print(f"orientation_label_ratio: {orientation_label_ratio}")
     print()
 
     for batch in dataloader:

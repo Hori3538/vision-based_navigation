@@ -2,7 +2,7 @@
 <launch>
 
 
-  <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/only_comvert.rviz" output="screen"/>
+  <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/only_convert.rviz" output="screen"/>
 
   <node name="reference_image_republish" pkg="image_transport" type="republish" args="compressed raw">
       <remap from="in" to="/reference_image/image_raw/" />
@@ -11,6 +11,10 @@
   <node name="observe_image_republish" pkg="image_transport" type="republish" args="compressed raw">
       <remap from="in" to="/grasscam/image_raw/" />
       <remap from="out" to="/grasscam/image_raw/" />
+  </node>
+  <node name="observe_image_republish2" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/usb_cam/image_raw/" />
+      <remap from="out" to="/usb_cam/image_raw/" />
   </node>
 
 </launch>
