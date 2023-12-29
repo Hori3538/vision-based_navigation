@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import random
+import time
 
 from training_data import TrainingData
 
@@ -64,9 +65,10 @@ class DatasetForDirectionNet(Dataset):
     @staticmethod
     # def count_data_for_each_label(dataset) -> Tuple[torch.Tensor, ...]:
     def count_data_for_each_label(dataset) -> torch.Tensor:
+        start = time.time()
         label_num: int = len(dataset[0][2])
 
-        dataloader = DataLoader(dataset, batch_size=1000, shuffle=False, drop_last=False)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False)
         direction_label_counts: torch.Tensor = torch.tensor([0] * label_num, dtype=torch.float)
 
         for batch in dataloader:
@@ -75,6 +77,7 @@ class DatasetForDirectionNet(Dataset):
 
             direction_label_counts += torch.sum(direction_label, 0)
 
+        # print(f"time: {time.time() - start}")
         return direction_label_counts
 
 def test() -> None:
@@ -91,17 +94,16 @@ def test() -> None:
     # データ確認用loader
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
-    DatasetForDirectionNet.equalize_label_counts(dataset)
     data_len: int = dataset.__len__()
     print(f"data len: {data_len}")
     direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
     print(f"direction_label_counts: {direction_label_counts}")
 
-    # DatasetForDirectionNet.equalize_label_counts(dataset)
-    # data_len = dataset.__len__()
-    # print(f"data len: {data_len}")
-    # direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
-    # print(f"direction_label_counts: {direction_label_counts}")
+    DatasetForDirectionNet.equalize_label_counts(dataset)
+    data_len = dataset.__len__()
+    print(f"data len: {data_len}")
+    direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
+    print(f"direction_label_counts: {direction_label_counts}")
 
     # direction_label_counts, orientation_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset)
 

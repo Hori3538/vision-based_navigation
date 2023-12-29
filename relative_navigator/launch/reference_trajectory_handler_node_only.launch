@@ -6,10 +6,13 @@
   </node>
 
   <node pkg="relative_navigator" type="rel_pose_label_estimator_node.py" name="rel_pose_label_estimator_node" output="screen">
+      <param name="hz" value="5"/>
       <param name="observed_image_topic_name" value="/grasscam/image_raw/compressed"/>
       <!-- <param name="weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/abstrelposnet/weights/ikuta_whole_area_12_03_with_dropout/best_acc.pt"/> -->
-      <param name="direction_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/ikuta_whole_diff_cattiming/best_acc.pt"/>
-      <param name="orientation_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/ikuta_whole_1215/best_acc.pt"/>
+      <!-- <param name="direction_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/ikuta_whole_diff_cattiming/best_acc.pt"/> -->
+      <!-- <param name="orientation_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/ikuta_whole_1215/best_acc.pt"/> -->
+      <param name="direction_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/without_center_perimeter_full_1218/best_acc.pt"/>
+      <param name="orientation_net_weight_path" value="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/without_center_perimeter_full_1218/best_acc.pt"/>
   </node>
 
   <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner_node" output="screen">

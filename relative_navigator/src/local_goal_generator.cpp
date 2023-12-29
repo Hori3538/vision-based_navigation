@@ -129,6 +129,7 @@ namespace relative_navigator
                         rel_pose_label_.value(), param_.bin_num,
                         param_.bin_step_degree, param_.dist_to_local_goal);
 
+                // 予測ラベルがnegativeのときはpubしない
                 if(rel_pose_label_.value().direction_label != 4)
                     local_goal_pub_.publish(local_goal);
                 rel_pose_label_.reset();

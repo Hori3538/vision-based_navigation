@@ -1,5 +1,6 @@
 hz: 10
 bagfile_path: /home/amsl/bag/abstrelposnet/dkan_perimeter/for_reference/2023-04-21-1608_dkan_perimeter_for_reference_counterclockwise.bag
+# bagfile_path: /home/amsl/bag/abstrelposnet/center_perimeter/for_reference/2023-2-26-1705_center_perimeter_counterclockwise.bag
 # image_topic_name: /usb_cam/image_raw/compressed
 image_topic_name: /grasscam/image_raw/compressed
 odom_topic_name: /whill/odom

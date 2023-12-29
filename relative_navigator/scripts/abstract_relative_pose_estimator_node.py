@@ -2,7 +2,7 @@
 
 import rospy
 
-from abstract_relative_pose_estimator import AbstractRelativePoseEstimator
+from modules.abstract_relative_pose_estimator import AbstractRelativePoseEstimator
 
 
 def main() -> None:

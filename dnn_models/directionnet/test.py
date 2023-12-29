@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime
 import os
+import random
 
 import torch
 import torch.nn.functional as F
@@ -10,6 +11,18 @@ import numpy as np
 
 from directionnet import DirectionNet
 from dataset_for_directionnet import DatasetForDirectionNet
+
+def fix_seed(seed):
+    # random
+    random.seed(seed)
+    # numpy
+    np.random.seed(seed)
+    # pytorch
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 def main():
     print("=== test start ==")
@@ -22,6 +35,9 @@ def main():
 
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     device ="cpu"
+
+    seed = 42
+    fix_seed(seed)
 
     model = DirectionNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))

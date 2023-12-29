@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import random
+import time
 
 from training_data import TrainingData
 
@@ -65,7 +66,7 @@ class DatasetForOrientationNet(Dataset):
     def count_data_for_each_label(dataset) -> torch.Tensor:
         label_num: int = len(dataset[0][3])
 
-        dataloader = DataLoader(dataset, batch_size=1000, shuffle=False, drop_last=False)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False)
         orientation_label_counts: torch.Tensor = torch.tensor([0] * label_num, dtype=torch.float)
 
         for batch in dataloader:

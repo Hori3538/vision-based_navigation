@@ -6,14 +6,15 @@ from relative_navigator_msgs.msg import RelPoseLabel
 
 from dataclasses import dataclass
 import torch
+import torch.nn.functional as F
 import numpy as np
 import cv2
 from typing import Optional
 
-import torch.nn.functional as F
 # from model import AbstRelPosNet
 from directionnet import DirectionNet
 from orientationnet import OrientationNet
+from .utils import compressed_image_to_tensor, infer
 
 @dataclass(frozen=True)
 class Param:
@@ -62,23 +63,27 @@ class RelPoseLabelEstimator:
                 "/rel_pose_label_estimator/rel_pose_label", RelPoseLabel, queue_size=1)
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
-        self._observed_image = self._compressed_image_to_tensor(msg)
+        # self._observed_image = self._compressed_image_to_tensor(msg)
+        self._observed_image = compressed_image_to_tensor(msg,
+                (self._param.image_height, self._param.image_width))
 
     def _reference_image_callback(self, msg: CompressedImage) -> None:
-        self._reference_image = self._compressed_image_to_tensor(msg)
+        # self._reference_image = self._compressed_image_to_tensor(msg)
+        self._reference_image = compressed_image_to_tensor(msg,
+                (self._param.image_height, self._param.image_width))
 
-    def _compressed_image_to_tensor(self, msg: CompressedImage) -> torch.Tensor:
-
-        np_image: np.ndarray = cv2.imdecode(np.frombuffer(
-            msg.data, np.uint8), cv2.IMREAD_COLOR)
-        np_image = cv2.resize(
-            np_image, (self._param.image_height, self._param.image_width))
-        image = torch.tensor(
-            np_image, dtype=torch.float32).to(self._device)
-        image = image.permute(2, 0, 1).unsqueeze(dim=0)
-        image = image / 255
-
-        return image
+    # def _compressed_image_to_tensor(self, msg: CompressedImage) -> torch.Tensor:
+    #
+    #     np_image: np.ndarray = cv2.imdecode(np.frombuffer(
+    #         msg.data, np.uint8), cv2.IMREAD_COLOR)
+    #     np_image = cv2.resize(
+    #         np_image, (self._param.image_height, self._param.image_width))
+    #     image = torch.tensor(
+    #         np_image, dtype=torch.float32).to(self._device)
+    #     image = image.permute(2, 0, 1).unsqueeze(dim=0)
+    #     image = image / 255
+    #
+    #     return image
 
     # def _predict_rel_pose_label(self) -> RelPoseLabel:
     #     models_output: torch.Tensor = self._direction_net(self._observed_image.to(self._device),
@@ -109,8 +114,13 @@ class RelPoseLabelEstimator:
         # direction_label_num: int = direction_net_output.size(dim=0)
         # orientation_label_num: int = orientation_net_output.size(dim=0)
 
-        direction_probs: torch.Tensor = F.softmax(direction_net_output, 0)
-        orientation_probs: torch.Tensor = F.softmax(orientation_net_output, 0)
+        # direction_probs: torch.Tensor = F.softmax(direction_net_output, 0)
+        # orientation_probs: torch.Tensor = F.softmax(orientation_net_output, 0)
+
+        direction_probs: torch.Tensor = infer(self._direction_net, self._device,
+                self._observed_image, self._reference_image)
+        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,
+                self._observed_image, self._reference_image)
 
         direction_max_idx = direction_probs.max(0).indices
         orientation_max_idx = orientation_probs.max(0).indices

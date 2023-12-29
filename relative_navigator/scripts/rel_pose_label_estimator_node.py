@@ -2,7 +2,7 @@
 
 import rospy
 
-from rel_pose_label_estimator import RelPoseLabelEstimator
+from modules.rel_pose_label_estimator import RelPoseLabelEstimator
 
 
 def main() -> None:
