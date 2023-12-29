@@ -7,12 +7,16 @@ G = nx.DiGraph()
 print(type(G))
 
 G.add_node(1, img=torch.Tensor([1, 2, 3]), gt_pose=[0.0, 0.0, 0.0])
+# G.add_node(1, img=torch.Tensor([2, 2, 3]), gt_pose=[0.0, 0.0, 0.0])
 G.add_node(2, img=torch.Tensor([1, 3, 3]), gt_pose=[0.0, 0.0, 1.0])
 G.add_node(3, img=torch.Tensor([3, 1, 3]), gt_pose=[0.0, 0.0, 0.0])
 
 G.add_edge(1, 3, bin=1, conf=0.7, weight=1)
 G.add_edge(1, 2, bin=0, conf=0.7, weight=1)
 G.add_edge(2, 3, bin=4, conf=0.7, weight=0)
+
+def add_node(graph):
+    graph.add_node(4, img=torch.Tensor([3, 1, 3]), gt_pose=[0.0, 0.0, 0.0])
 
 print(dict(G.nodes))
 print(list(G.nodes))
@@ -30,5 +34,6 @@ for node_idx, img in dict(G.nodes.data('img')).items():
 
 print(nx.shortest_path(G, source=1, target=3, weight="weigth"))
 
+add_node(G)
 nx.draw_networkx(G)
 plt.show()

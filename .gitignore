@@ -6,3 +6,4 @@ logs/
 .ipynb_checkpoints
 compile_commands.json
 .cache/
+topological_maps/

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Type, Union, TypeVar, Any
 
 import cv2
 import numpy as np
@@ -6,6 +6,8 @@ import torch
 import torch.nn.functional as F
 
 from sensor_msgs.msg import CompressedImage
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PoseStamped, Pose
 
 from directionnet import DirectionNet
 from orientationnet import OrientationNet
@@ -38,3 +40,14 @@ def infer(model: Union[DirectionNet, OrientationNet], device: str,
     output_probs = F.softmax(model_output, 0)
 
     return output_probs
+
+# T = TypeVar("T", Odometry, PoseStamped)
+# def msg_to_pose(msg: T) -> Pose:
+#     if isinstance(msg, Odometry): return msg.pose.pose
+#     if isinstance(msg, PoseStamped): return msg.pose
+#     print("hoge")
+
+def msg_to_pose(msg: Any, type: str) -> Pose:
+    if type == "Odometry": return msg.pose.pose
+    if type == "PoseStamped": return msg.pose
+    assert False, "Unknown message type"
