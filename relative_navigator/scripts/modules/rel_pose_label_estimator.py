@@ -11,7 +11,6 @@ import numpy as np
 import cv2
 from typing import Optional, cast
 
-# from model import AbstRelPosNet
 from directionnet import DirectionNet
 from orientationnet import OrientationNet
 from .utils import compressed_image_to_tensor, infer
@@ -38,8 +37,7 @@ class RelPoseLabelEstimator:
                 rospy.get_param("~image_height", 224),
                 rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
             )
-        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        self._device: str = "cpu"
+
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
         self._direction_net.eval()
