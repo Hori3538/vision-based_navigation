@@ -1,7 +1,9 @@
+from optparse import Option
 import os
 import pickle
 import numpy as np
 import cv2
+from typing import Union
 # from dataclasses import dataclass
 
 import networkx as nx
@@ -24,20 +26,20 @@ from .utils import tensor_to_cv_image
 #             raise FileNotFoundError(f"File {path} does not exist.")
 #         with open(path, "rb") as f:
 #             return pickle.load(f)
-def save_topological_map(path: str, topological_map: nx.DiGraph) -> None:
+def save_topological_map(path: str, topological_map: Union[nx.DiGraph, nx.Graph]) -> None:
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         pickle.dump(topological_map, f)
 
-def load_topological_map(path: str) -> nx.DiGraph:
+def load_topological_map(path: str) -> Union[nx.DiGraph, nx.Graph]:
 
     if not os.path.exists(path):
         raise FileNotFoundError(f"File {path} does not exist.")
     with open(path, "rb") as f:
         return pickle.load(f)
 
-def save_nodes_as_img(graph: nx.DiGraph, dir: str):
+def save_nodes_as_img(graph: Union[nx.DiGraph, nx.Graph], dir: str):
     for node_id, img_tensor in dict(graph.nodes.data('img')).items():
         img_np: np.ndarray = tensor_to_cv_image(img_tensor)
         image_name = node_id + ".jpg"

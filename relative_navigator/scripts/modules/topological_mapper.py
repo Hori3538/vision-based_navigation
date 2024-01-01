@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from optparse import Option
-from typing import Tuple, cast, List, Optional
+from typing import Tuple, cast, List, Optional, Union
 from glob import iglob
 import os
 import matplotlib.pyplot as plt
@@ -42,6 +42,7 @@ class Param:
 
     divide_conf_th: float # node生成時，隣接画像間の "same" confがこれより小さい時nodeを追加する
     connect_conf_th: float # edge 生成時，node間の "same" conf がこれより大きい時edgeを追加する
+    edge_num_th: int # >= 1
 
     #  edgeの種類は dir or ori となり，ori edgeのほうがdir edge に比べ移動が容易であると考えられる．
     #  そのため，最短経路の計算時に使用するweight はori edgeのほうが小さく設定する
@@ -64,6 +65,7 @@ class TopologicalMapper:
 
             cast(float, rospy.get_param("~divide_conf_th", 0.7)),
             cast(float, rospy.get_param("~connect_conf_th", 0.6)),
+            cast(int, rospy.get_param("~edge_num_th", 3)),
             cast(float, rospy.get_param("~orientation_edge_weigth_ratio", 0.2)),
         )
 
@@ -78,6 +80,7 @@ class TopologicalMapper:
         self._orientation_net.eval()
 
         self._graph = nx.DiGraph()
+        # self._graph = nx.Graph()
 
     def _are_diff_nodes(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
@@ -110,7 +113,7 @@ class TopologicalMapper:
         # direction_max_idx = direction_probs.max(0).indices
         return False
 
-    def _add_nodes_from_bag(self, graph: nx.DiGraph, bag: Bag, bag_id: int) -> None:
+    def _add_nodes_from_bag(self, graph: Union[nx.DiGraph, nx.Graph], bag: Bag, bag_id: int) -> None:
 
         prev_img: Optional[torch.Tensor] = None
         img: Optional[torch.Tensor] = None
@@ -166,12 +169,13 @@ class TopologicalMapper:
         return "ori"+str(orientation_max_idx), orientation_label_conf
 
     # pred conf of "same" label
-    def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[float]:
+    # def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[float]:
+    def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> float:
 
         direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img)
         direction_max_idx = int(direction_probs.max(0).indices)
 
-        if direction_max_idx != 3: return None
+        # if direction_max_idx != 3: return None
         return float(direction_probs[3])
 
     # return node_name and conf_of_label
@@ -197,25 +201,53 @@ class TopologicalMapper:
                     self._find_node_connected_by_designated_label(src_node, label)
 
                 if competing_node_info == None:
-                    graph.add_edge(src_node, tgt_node, label=label, conf=conf, weight=edge_weigth)
+                    graph.add_edge(src_node, tgt_node,
+                                   label=label, conf=conf, weight=edge_weigth, required=False)
                     continue
 
                 competing_node, competing_edge_conf = competing_node_info
                 if conf > competing_edge_conf:
-                    graph.add_edge(src_node, tgt_node, label=label, conf=conf, weight=edge_weigth)
+                    graph.add_edge(src_node, tgt_node, label=label, conf=conf, weight=edge_weigth,
+                                   required=False)
                     graph.remove_edge(src_node, competing_node)
 
-    def _add_edges2(self, graph: nx.DiGraph) -> None:
+    def _add_edges2(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
 
         for src_node, src_img in dict(graph.nodes.data('img')).items():
             for tgt_node, tgt_img in dict(graph.nodes.data('img')).items():
-                if src_node == tgt_node: continue
+                if src_node == tgt_node or graph.has_edge(src_node, tgt_node): continue
 
-                same_conf: Optional[float] = self._pred_same_conf(src_img, tgt_img)
-                if same_conf == None or same_conf < self._param.connect_conf_th: continue
+                # same_conf: Optional[float] = self._pred_same_conf(src_img, tgt_img)
+                same_conf: float = self._pred_same_conf(src_img, tgt_img)
+                # if same_conf == None or same_conf < self._param.connect_conf_th: continue
+                if same_conf < self._param.connect_conf_th: continue
 
-                graph.add_edge(src_node, tgt_node, weight=1-same_conf) # same_confが高いほど近い
+                graph.add_edge(src_node, tgt_node, weight=1-same_conf, required=False)
         rospy.loginfo(f"{len(list(self._graph.edges))} edges is added")
+
+    def _add_minimum_required_edges(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
+        for src_node, src_img in dict(graph.nodes.data('img')).items():
+            bag_idx, src_node_idx = src_node.split('_')
+            next_node: str = "_".join([bag_idx, str(int(src_node_idx) + 1)])
+            if not next_node in graph: continue
+
+            next_img: torch.Tensor = graph.nodes[next_node]['img']
+            same_conf = self._pred_same_conf(src_img, next_img)
+            graph.add_edge(src_node, next_node, weight=1-same_conf, required=True)
+
+    def _edge_pruning(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
+        for src_node in graph.nodes:
+            tgt_nodes = graph.succ[src_node]
+            surplus_edge_count = len(tgt_nodes) - self._param.edge_num_th
+
+            sorted_tgt_nodes = sorted(dict(tgt_nodes), key=lambda x: tgt_nodes[x]['weight'])
+            for tgt_node in sorted_tgt_nodes:
+                if surplus_edge_count < 1: break
+                if graph.edges[src_node, tgt_node]['required'] == True: continue
+
+                graph.remove_edge(src_node, tgt_node)
+                surplus_edge_count -= 1
+
 
     def process(self) -> None:
 
@@ -224,28 +256,36 @@ class TopologicalMapper:
         #     bag: Bag = Bag(bagfile_path)
         #     self._add_nodes_from_bag(self._graph, bag, i)
 
+        self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name))
         # add edges process
         # self._add_edges(self._graph)
+        
+        # self._graph.remove_edges_from(list(self._graph.edges))
+        # self._add_minimum_required_edges(self._graph)
         # self._add_edges2(self._graph)
+        # self._edge_pruning(self._graph)
         # save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name), self._graph)
-        self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name))
+        # self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name))
         os.makedirs(os.path.join(self._param.map_save_dir, "node_images"), exist_ok=True)
         # save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, "node_images"))
 
         print(dict(self._graph.edges))
         # print(self._pred_same_conf(self._graph.nodes["0_17"]['img'],
         #                            self._graph.nodes["0_18"]['img']))
-        print(infer(self._direction_net, self._device, self._graph.nodes["0_15"]['img'], 
-            self._graph.nodes["0_16"]['img']))
-        print(infer(self._direction_net, self._device, self._graph.nodes["0_16"]['img'], 
-            self._graph.nodes["0_17"]['img']))
-        print(infer(self._direction_net, self._device, self._graph.nodes["0_17"]['img'], 
-            self._graph.nodes["0_18"]['img']))
-        # print(nx.shortest_path(self._graph, source="0_1", target="0_10", weight="weigth"))
-        # print(nx.shortest_path(self._graph, source="0_10", target="0_20", weight="weigth"))
-        print(nx.shortest_path(self._graph, source="0_15", target="0_18", weight="weigth"))
-        # print(nx.shortest_path(self._graph, source="0_1", target="0_70", weight="weigth"))
-        print(nx.shortest_path(self._graph, source="0_18", target="0_70", weight="weigth"))
+        print(infer(self._direction_net, self._device, self._graph.nodes["0_110"]['img'], 
+            self._graph.nodes["0_168"]['img']))
+        print(infer(self._direction_net, self._device, self._graph.nodes["0_26"]['img'], 
+            self._graph.nodes["0_52"]['img']))
+        print(infer(self._direction_net, self._device, self._graph.nodes["0_26"]['img'], 
+            self._graph.nodes["0_29"]['img']))
+        print(infer(self._direction_net, self._device, self._graph.nodes["0_19"]['img'], 
+            self._graph.nodes["0_22"]['img']))
+        print(nx.shortest_path(self._graph, source="0_1", target="0_280", weight="weigth"))
+        # print(nx.shortest_path(self._graph, source="0_1", target="0_18", weight="weigth"))
+        # print(nx.shortest_path(self._graph, source="0_20", target="0_25", weight="weigth"))
+        # print(nx.shortest_path(self._graph, source="0_34", target="0_70", weight="weigth"))
+        # print(nx.shortest_path(self._graph, source="0_70", target="0_150", weight="weigth"))
+        # print(nx.shortest_path(self._graph, source="0_18", target="0_70", weight="weigth"))
         # print(nx.get_node_attributes(self._graph, 'pose'))
         
         nx.draw_networkx(self._graph)
