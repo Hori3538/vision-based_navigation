@@ -5,7 +5,7 @@ import networkx as nx
 import rospy
 
 from geometry_msgs.msg import Point
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
 
 
 from .topological_map_io import load_topological_map
@@ -23,26 +23,30 @@ class TopologicalMapVisualizer:
             cast(str, rospy.get_param("~map_path")),
         )
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
-        self._nodes_pub = rospy.Publisher("~nodes", Marker, queue_size=1, tcp_nodelay=True)
+        self._nodes_sphere_pub = rospy.Publisher("~nodes_sphere", Marker, queue_size=1, tcp_nodelay=True)
+        self._nodes_text_pub = rospy.Publisher("~nodes_text", MarkerArray, queue_size=1, tcp_nodelay=True)
         self._edges_pub = rospy.Publisher("~edges", Marker, queue_size=1, tcp_nodelay=True)
 
-    def _generate_marker_of_nodes(self) -> Marker:
+    def _generate_marker_of_nodes(self) -> Tuple[Marker, MarkerArray]:
 
-        marker = Marker()
-        marker.type = marker.SPHERE_LIST
-        marker.action = marker.ADD
-        marker.scale.x = 0.4
-        marker.scale.y = 0.4
-        marker.scale.z = 0.4
-        marker.color.a = 1.0
-        marker.color.b = 1.0
+        marker_sphere = Marker()
+        marker_sphere.type = marker_sphere.SPHERE_LIST
+        marker_sphere.action = marker_sphere.ADD
+        marker_sphere.scale.x = 0.4
+        marker_sphere.scale.y = 0.4
+        marker_sphere.scale.z = 0.4
+        marker_sphere.color.a = 1.0
+        marker_sphere.color.b = 1.0
 
-        marker.pose.orientation.w = 1
+        marker_sphere.pose.orientation.w = 1
+
+        markers_text = MarkerArray()
         
-        for node in self._graph.nodes:
-            self._add_node_to_marker(marker, node)
+        for marker_id, node in enumerate(self._graph.nodes):
+            self._add_node_to_marker(marker_sphere, node)
+            markers_text.markers.append(self._create_text_marker_of_node(node, marker_id))
 
-        return marker
+        return marker_sphere, markers_text
 
     def _generate_marker_of_edges(self) -> Marker:
 
@@ -71,6 +75,31 @@ class TopologicalMapVisualizer:
         point.x, point.y = x, y
         marker.colors.append(marker.color)
         marker.points.append(point)
+    
+    def _create_text_marker_of_node(self, node_name: str, marker_id: int) -> Marker:
+        marker = Marker()
+        marker.type = marker.TEXT_VIEW_FACING
+        marker.action = marker.ADD
+
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "nodes_text"
+
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 1.0
+
+        marker.scale.z = 0.7
+
+        marker.id = marker_id
+
+        x, y, _ = self._graph.nodes[node_name]['pose']
+        marker.pose.position.x, marker.pose.position.y = x, y
+        marker.pose.orientation.w = 1
+        marker.text = node_name
+        
+        return marker
 
     def _add_edge_to_marker(self, marker: Marker, edge: Tuple[str, str]) -> None:
 
@@ -87,13 +116,13 @@ class TopologicalMapVisualizer:
         marker.points.append(src_point)
         marker.points.append(tgt_point)
 
-    def _visualize_nodes(self, marker: Marker) -> None:
+    def _visualize_nodes_sphere(self, marker: Marker) -> None:
 
         marker.header.frame_id = "map"
         marker.header.stamp = rospy.Time.now()
-        marker.ns = "nodes"
+        marker.ns = "nodes_sphere"
         marker.id = 0
-        self._nodes_pub.publish(marker)
+        self._nodes_sphere_pub.publish(marker)
 
     def _visualize_edges(self, marker: Marker) -> None:
 
@@ -107,10 +136,11 @@ class TopologicalMapVisualizer:
 
         rate = rospy.Rate(self._param.hz)
 
-        marker_of_nodes: Marker = self._generate_marker_of_nodes()
+        marker_of_nodes_sphere, marker_of_nodes_text = self._generate_marker_of_nodes()
         marker_of_edges: Marker = self._generate_marker_of_edges()
 
         while not rospy.is_shutdown():
-            self._visualize_nodes(marker_of_nodes)
+            self._visualize_nodes_sphere(marker_of_nodes_sphere)
             self._visualize_edges(marker_of_edges)
+            self._nodes_text_pub.publish(marker_of_nodes_text)
             rate.sleep()

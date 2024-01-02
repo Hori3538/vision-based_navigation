@@ -54,18 +54,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /topological_map_visualizer/nodes
-      Name: Marker
-      Namespaces:
-        nodes: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
       Marker Topic: /topological_map_visualizer/edges
       Name: Marker
       Namespaces:
-        nodes: true
+        edges: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -76,6 +68,22 @@ Visualization Manager:
       Radius: 0.10000000149011612
       Reference Frame: <Fixed Frame>
       Show Trail: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /topological_map_visualizer/nodes_sphere
+      Name: Marker
+      Namespaces:
+        nodes_sphere: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /topological_map_visualizer/nodes_text
+      Name: MarkerArray
+      Namespaces:
+        nodes_text: true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -105,7 +113,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 139.29299926757812
+      Distance: 266.6120300292969
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -113,9 +121,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.621036171913147
-        Y: -58.2950439453125
-        Z: -0.005623668432235718
+        X: 227.70919799804688
+        Y: 124.95639038085938
+        Z: 0.23575884103775024
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
