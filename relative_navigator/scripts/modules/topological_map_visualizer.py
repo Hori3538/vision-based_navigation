@@ -7,7 +7,6 @@ import rospy
 from geometry_msgs.msg import Point
 from visualization_msgs.msg import Marker, MarkerArray
 
-
 from .topological_map_io import load_topological_map
 
 @dataclass(frozen=True)

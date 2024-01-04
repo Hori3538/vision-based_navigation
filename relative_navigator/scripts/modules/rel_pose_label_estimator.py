@@ -6,9 +6,6 @@ from relative_navigator_msgs.msg import RelPoseLabel
 
 from dataclasses import dataclass
 import torch
-import torch.nn.functional as F
-import numpy as np
-import cv2
 from typing import Optional, cast
 
 from directionnet import DirectionNet
@@ -37,6 +34,8 @@ class RelPoseLabelEstimator:
                 rospy.get_param("~image_height", 224),
                 rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
             )
+
+        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
@@ -71,9 +70,9 @@ class RelPoseLabelEstimator:
     def _predict_rel_pose_label(self) -> RelPoseLabel:
 
         direction_probs: torch.Tensor = infer(self._direction_net, self._device,
-                cast(torch.Tensor, self._observed_image), cast(torch.Tensor, self._reference_image))
+                cast(torch.Tensor, self._observed_image), cast(torch.Tensor, self._reference_image)).squeeze()
         orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,
-                cast(torch.Tensor, self._observed_image), cast(torch.Tensor, self._reference_image))
+                cast(torch.Tensor, self._observed_image), cast(torch.Tensor, self._reference_image)).squeeze()
 
         direction_max_idx = direction_probs.max(0).indices
         orientation_max_idx = orientation_probs.max(0).indices

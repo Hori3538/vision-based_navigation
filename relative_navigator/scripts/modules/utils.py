@@ -40,8 +40,8 @@ def tensor_to_cv_image(image_tensor: torch.Tensor) -> np.ndarray:
 
 def infer(model: Union[DirectionNet, OrientationNet], device: str, 
         src_img: torch.Tensor, tgt_img: torch.Tensor) -> torch.Tensor:
-    model_output = model(src_img.to(device), tgt_img.to(device)).squeeze()
-    output_probs = F.softmax(model_output, 0)
+    model_output = model(src_img.to(device), tgt_img.to(device))
+    output_probs = F.softmax(model_output, 1)
 
     return output_probs
 

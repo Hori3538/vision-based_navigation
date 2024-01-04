@@ -17,6 +17,9 @@ G.add_edge(1, 4, bin=0, conf=0.8, weight=1)
 #
 G.add_edge(2, 3, bin=4, conf=0.7, weight=0)
 
+
+print(G.nodes[1, 2, 3])
+print(nx.get_node_attributes(G, 'img'))
 #
 # for node in G.nodes:
 #     print(node)

@@ -6,8 +6,8 @@ from modules.topological_map_visualizer import TopologicalMapVisualizer
 
 def main() -> None:
     try:
-        topological_mapper = TopologicalMapVisualizer()
-        topological_mapper.process()
+        topological_map_visualizer = TopologicalMapVisualizer()
+        topological_map_visualizer.process()
     except rospy.ROSInterruptException:
         pass
 
