@@ -80,8 +80,8 @@ class TopologicalMapper:
 
     def _are_diff_nodes(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img)
-        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img)
+        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
+        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
 
         direction_max_idx = direction_probs.max(0).indices
         orientation_max_idx = orientation_probs.max(0).indices
@@ -97,10 +97,10 @@ class TopologicalMapper:
 
     def _are_different_enough(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img)
+        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
         if direction_probs[3] < self._param.divide_conf_th: return True
 
-        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img)
+        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
         if orientation_probs[1] < self._param.divide_conf_th: return True
         # orientation_max_idx = orientation_probs.max(0).indices
         # if orientation_max_idx == 0 or orientation_max_idx == 2: return True
@@ -149,7 +149,7 @@ class TopologicalMapper:
     def _pred_edge(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[Tuple[str, float]]:
 
         # 計算量を抑えるためdirectionの予測だけで確定する場合を先に処理する
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img)
+        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
         direction_max_idx = int(direction_probs.max(0).indices)
         direction_label_conf = float(direction_probs[direction_max_idx])
 
@@ -157,7 +157,7 @@ class TopologicalMapper:
         if direction_max_idx < 3: return "dir"+str(direction_max_idx), direction_label_conf
 
         # direction label がsame(3)の時の処理
-        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img)
+        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
         orientation_max_idx = int(orientation_probs.max(0).indices)
         orientation_label_conf = float(orientation_probs[orientation_max_idx])
 
@@ -168,7 +168,7 @@ class TopologicalMapper:
     # def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[float]:
     def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> float:
 
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img)
+        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
         direction_max_idx = int(direction_probs.max(0).indices)
 
         # if direction_max_idx != 3: return None

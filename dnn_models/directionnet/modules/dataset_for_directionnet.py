@@ -65,7 +65,6 @@ class DatasetForDirectionNet(Dataset):
     @staticmethod
     # def count_data_for_each_label(dataset) -> Tuple[torch.Tensor, ...]:
     def count_data_for_each_label(dataset) -> torch.Tensor:
-        start = time.time()
         label_num: int = len(dataset[0][2])
 
         dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False)

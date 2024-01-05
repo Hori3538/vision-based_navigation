@@ -13,8 +13,32 @@
             hz: 5
             map_path: $(arg map_path)
             batch_size: 32
+            global_localize_conf_th: 0.4
+            candidate_neibors_num: 2
+        </rosparam>
+    </node>
+
+    <node pkg="relative_navigator" type="topological_map_visualizer_node.py" name="topological_map_visualizer" output="screen">
+        <rosparam subst_value="True">
+            hz: 0.1
+            map_path: $(arg map_path)
         </rosparam>
     </node>
 
   <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/map.rviz" output="screen"/>
+
+  <node name="observe_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/grasscam/image_raw/" />
+      <remap from="out" to="/grasscam/image_raw/" />
+  </node>
+
+  <node name="nearest_node_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/graph_localizer/nearest_node_img/image_raw/" />
+      <remap from="out" to="/graph_localizer/nearest_node_img/image_raw/" />
+  </node>
+
+  <node name="goal_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/graph_localizer/goal_img/image_raw/" />
+      <remap from="out" to="/graph_localizer/goal_img/image_raw/" />
+  </node>
 </launch>

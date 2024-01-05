@@ -1,6 +1,7 @@
 from typing import List, Tuple, Type, Union, TypeVar, Any
 
 import cv2
+from networkx.algorithms import partition_spanning_tree
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -38,6 +39,7 @@ def tensor_to_cv_image(image_tensor: torch.Tensor) -> np.ndarray:
     image = (image_tensor.squeeze()*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
     return image
 
+@torch.no_grad()
 def infer(model: Union[DirectionNet, OrientationNet], device: str, 
         src_img: torch.Tensor, tgt_img: torch.Tensor) -> torch.Tensor:
     model_output = model(src_img.to(device), tgt_img.to(device))
