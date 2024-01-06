@@ -1,3 +1,6 @@
+#include "geometry_msgs/PoseArray.h"
+#include "sensor_msgs/LaserScan.h"
+#include <cmath>
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -20,10 +23,14 @@ namespace relative_navigator
         private_nh.param<double>("max_accel", param_.max_accel, 3.0);
         private_nh.param<double>("max_dyawrate", param_.max_dyawrate, 5.0);
         private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/whill/odom");
+        private_nh.param<std::string>("scan_topic_name", param_.scan_topic_name, "/scan");
+        private_nh.param<float>("collision_th", param_.collision_th, 0.3);
 
         local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
         odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
-        reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
+        scan_sub_ = nh.subscribe<sensor_msgs::LaserScan>(param_.scan_topic_name, 1, &LocalPathPlanner::scan_callback, this);
+
+        // reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
         // local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
         control_input_pub_ = nh.advertise<geometry_msgs::Twist>("local_path/cmd_vel", 1);
         best_local_path_pub_ = nh.advertise<nav_msgs::Path>("best_local_path", 1);
@@ -56,6 +63,12 @@ namespace relative_navigator
         {
             update_local_goal(previous_base_to_now_base);
         }
+    }
+
+    void LocalPathPlanner::scan_callback(const sensor_msgs::LaserScanConstPtr &msg)
+    {
+        scan_ = *msg;
+        obs_list_ = scan_to_obs_list(scan_.value());
     }
 
     double LocalPathPlanner::adjust_yaw(double yaw)
@@ -194,6 +207,8 @@ namespace relative_navigator
                 std::vector<State> trajectory = calc_trajectory(velocity, yawrate);
                 trajectories_.push_back(trajectory);
 
+                if(is_collision(trajectory)) continue;
+
                 double heading_score;
                 double approaching_score;
 
@@ -278,7 +293,38 @@ namespace relative_navigator
 
     double LocalPathPlanner::calc_dist_from_pose(geometry_msgs::Pose pose)
     {
-        return std::sqrt(pow(pose.position.x, 2) + pow(pose.position.y, 2));
+        // return std::sqrt(pow(pose.position.x, 2) + pow(pose.position.y, 2));
+        return std::hypot(pose.position.x, pose.position.y);
+    }
+
+    geometry_msgs::PoseArray LocalPathPlanner::scan_to_obs_list(const sensor_msgs::LaserScan &scan)
+    {
+        geometry_msgs::PoseArray obs_list;
+        obs_list.header = scan.header;
+        for(float angle=scan.angle_min; const auto& range : scan.ranges)
+        {
+            geometry_msgs::Pose pose;
+            pose.position.x = range * cos(angle);
+            pose.position.y = range * sin(angle);
+            obs_list.poses.push_back(pose);
+            angle += scan.angle_increment;
+        }
+
+        return obs_list;
+    }
+
+    bool LocalPathPlanner::is_collision(const std::vector<State>& traj) const
+    {
+        if(!obs_list_.has_value()) return false;
+        for (const auto &state : traj)
+        {
+            for (const auto &obs : obs_list_.value().poses)
+            {
+                float dist = std::hypot((state.x - obs.position.x), (state.y - obs.position.y));
+                if (dist < param_.collision_th) return true;
+            }
+        }
+        return false;
     }
 
     void LocalPathPlanner::process()
@@ -292,7 +338,7 @@ namespace relative_navigator
 
                 std::pair<double, double> input = decide_input();
                 publish_control_input(input.first, input.second, control_input_pub_);
-                publish_reaching_flag(reaching_target_pose_flag_pub_, reaching_target_pose_flag_);
+                // publish_reaching_flag(reaching_target_pose_flag_pub_, reaching_target_pose_flag_);
 
                 for(auto& trajectory : trajectories_)
                     visualize_trajectory(trajectory, candidate_local_path_pub_);

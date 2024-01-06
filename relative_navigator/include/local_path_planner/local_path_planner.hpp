@@ -1,22 +1,27 @@
 #ifndef LOCAL_PATH_PLANNER
 #define LOCAL_PATH_PLANNER
 
+#include <optional>
+#include <string>
+
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Transform.h>
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Bool.h>
-#include <string>
+#include <sensor_msgs/LaserScan.h>
+
 #include <tf2/convert.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/utils.h>
 #include <tf/tf.h>
 
-#include <optional>
 
+// To Do 障害物関連の処理がガバガバなのをどうにかする
 namespace relative_navigator
 {
     struct Param
@@ -39,6 +44,9 @@ namespace relative_navigator
         double max_dyawrate;
 
         std::string odom_topic_name;
+        std::string scan_topic_name;
+
+        float collision_th;
     };
 
     struct State
@@ -58,6 +66,8 @@ namespace relative_navigator
         private:
             void local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg);
             void odometry_callback(const nav_msgs::OdometryConstPtr &msg);
+            void scan_callback(const sensor_msgs::LaserScanConstPtr & msg);
+
             geometry_msgs::Pose calc_previous_base_to_now_base() const;
             static double adjust_yaw(double yaw);
             void update_local_goal(geometry_msgs::Pose previous_base_to_now_base);
@@ -78,19 +88,29 @@ namespace relative_navigator
             std::pair<bool, bool> reaching_judge() const;
             static void publish_reaching_flag(const ros::Publisher &publisher, bool reaching_flag);
             static double calc_dist_from_pose(geometry_msgs::Pose pose);
+
+            static geometry_msgs::PoseArray scan_to_obs_list(const sensor_msgs::LaserScan &scan);
+            bool is_collision(const std::vector<State>& traj) const;
+
             Param param_;
 
             std::optional<geometry_msgs::PoseStamped> local_goal_;
-            bool reaching_target_point_flag_ = false;
-            bool reaching_target_pose_flag_ = false;
+            std::optional<sensor_msgs::LaserScan> scan_;
             nav_msgs::Odometry current_odometry_;
             std::optional<nav_msgs::Odometry> previous_odometry_;
+
+            bool reaching_target_point_flag_ = false;
+            bool reaching_target_pose_flag_ = false;
             std::pair<double, double> previous_input_;
+            std::optional<geometry_msgs::PoseArray> obs_list_;
+
             std::vector<std::vector<State>> trajectories_;
             std::vector<State> best_trajectory_;
 
             ros::Subscriber local_goal_sub_;
             ros::Subscriber odometry_sub_;
+            ros::Subscriber scan_sub_;
+
             ros::Publisher control_input_pub_;
             ros::Publisher reaching_target_pose_flag_pub_;
             // ros::Publisher local_goal_pub_;

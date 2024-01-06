@@ -16,3 +16,7 @@ min_speed: 0.0
 max_yawrate: 2.0
 max_accel: 10.0
 max_dyawrate: 6.0
+
+odom_topic_name: "/whill/odom"
+scan_topic_name: "/scan"
+collision_th: 0.3
