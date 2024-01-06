@@ -29,7 +29,7 @@ def main():
     # parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=0)
-    parser.add_argument("-e", "--num-epochs", type=int, default=50)
+    parser.add_argument("-e", "--num-epochs", type=int, default=70)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")

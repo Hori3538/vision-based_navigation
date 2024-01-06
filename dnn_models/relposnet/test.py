@@ -45,7 +45,7 @@ def main():
     model.eval()
 
     test_dataset = DatasetForDirectionNet(args.dataset_dirs)
-    # DatasetForDirectionNet.equalize_label_counts(test_dataset)
+    DatasetForDirectionNet.equalize_label_counts(test_dataset)
     test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
     
     loss_func = torch.nn.MSELoss()

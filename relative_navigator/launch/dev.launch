@@ -12,7 +12,8 @@
             orientation_net_weight_path: $(arg orientation_net_weight_path)
             hz: 5
             map_path: $(arg map_path)
-            batch_size: 32
+            <!-- batch_size: 32 -->
+            batch_size: 16
             global_localize_conf_th: 0.4
             candidate_neibors_num: 2
         </rosparam>
@@ -25,7 +26,35 @@
         </rosparam>
     </node>
 
-  <node pkg="rviz" name="rviz_map_frame" type="rviz" args="-d $(find relative_navigator)/config/rviz/map.rviz" output="screen"/>
+    <node pkg="relative_navigator" type="graph_path_planner_node.py" name="graph_path_planner" output="screen">
+        <rosparam subst_value="True">
+            hz: 5
+            map_path: $(arg map_path)
+            first_waypoint_dist: 2
+        </rosparam>
+    </node>
+
+    <node pkg="relative_navigator" type="rel_pose_label_estimator_node.py" name="rel_pose_label_estimator" output="screen">
+        <rosparam subst_value="True">
+            hz: 10
+            direction_net_weight_path: $(arg direction_net_weight_path)
+            orientation_net_weight_path: $(arg orientation_net_weight_path)
+            observed_image_topic_name: "/grasscam/image_raw/compressed"
+
+            reference_image_topic_name: "/graph_path_planner/first_waypoint_img/image_raw/compressed"
+        </rosparam>
+    </node>
+
+  <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator_node" output="screen">
+    <rosparam file="$(find relative_navigator)/config/param/local_goal_generator.yaml" command="load"/>
+  </node>
+
+  <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner_node" output="screen">
+    <rosparam file="$(find relative_navigator)/config/param/local_path_planner.yaml" command="load"/>
+  </node>
+
+  <node pkg="rviz" name="rviz_map" type="rviz" args="-d $(find relative_navigator)/config/rviz/map.rviz" output="screen"/>
+  <node pkg="rviz" name="rviz_base" type="rviz" args="-d $(find relative_navigator)/config/rviz/base.rviz" output="screen"/>
 
   <node name="observe_image_republish" pkg="image_transport" type="republish" args="compressed raw">
       <remap from="in" to="/grasscam/image_raw/" />
@@ -40,5 +69,10 @@
   <node name="goal_image_republish" pkg="image_transport" type="republish" args="compressed raw">
       <remap from="in" to="/graph_localizer/goal_img/image_raw/" />
       <remap from="out" to="/graph_localizer/goal_img/image_raw/" />
+  </node>
+
+  <node name="first_waypoint_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/graph_path_planner/first_waypoint_img/image_raw/" />
+      <remap from="out" to="/graph_path_planner/first_waypoint_img/image_raw/" />
   </node>
 </launch>

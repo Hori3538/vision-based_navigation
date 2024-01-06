@@ -15,12 +15,12 @@ from .utils import compressed_image_to_tensor, infer
 @dataclass(frozen=True)
 class Param:
     hz: float
-    # weight_path: str
     direction_net_weight_path: str
     orientation_net_weight_path: str
     image_width: int
     image_height: int
     observed_image_topic_name: str
+    reference_image_topic_name: str
 
 class RelPoseLabelEstimator:
     def __init__(self) -> None:
@@ -33,9 +33,11 @@ class RelPoseLabelEstimator:
                 rospy.get_param("~image_width", 224),
                 rospy.get_param("~image_height", 224),
                 rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
+                rospy.get_param("~reference_image_topic_name", ""),
             )
 
-        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device: str = "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
@@ -53,7 +55,7 @@ class RelPoseLabelEstimator:
                 CompressedImage, self._observed_image_callback, queue_size=1)
 
         self._reference_image_sub: rospy.Subscriber = rospy.Subscriber(
-                "/reference_image/image_raw/compressed",
+                self._param.reference_image_topic_name,
                 CompressedImage, self._reference_image_callback, queue_size=1)
 
         self._rel_pose_label_pub: rospy.Publisher = rospy.Publisher(

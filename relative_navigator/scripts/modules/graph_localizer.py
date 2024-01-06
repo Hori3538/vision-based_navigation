@@ -8,7 +8,7 @@ import networkx as nx
 import rospy
 from sensor_msgs.msg import CompressedImage
 from visualization_msgs.msg import Marker
-
+from std_msgs.msg import String
 
 from directionnet import DirectionNet
 from .utils import compressed_image_to_tensor, tensor_to_compressed_image, infer
@@ -47,6 +47,7 @@ class GraphLocalizer:
             )
 
         self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
@@ -62,12 +63,15 @@ class GraphLocalizer:
         self._goal_img_pub = rospy.Publisher("~goal_img/image_raw/compressed",
                 CompressedImage, queue_size=1, tcp_nodelay=True)
 
-        self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
-        self._before_node: Optional[str] = None
 
         self._nearest_node_marker_pub = rospy.Publisher("~nearest_node_marker", Marker, queue_size=1, tcp_nodelay=True)
-        self._goal_node_pub = rospy.Publisher("~goal_node", Marker, queue_size=1, tcp_nodelay=True)
+        self._goal_node_marker_pub = rospy.Publisher("~goal_node_marker", Marker, queue_size=1, tcp_nodelay=True)
 
+        self._nearest_node_id_pub = rospy.Publisher("~nearest_node_id", String, queue_size=1, tcp_nodelay=True)
+        self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=1, tcp_nodelay=True)
+
+        self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
+        self._before_node: Optional[str] = None
         self._goal_image: torch.Tensor = self._graph.nodes["0_180"]['img']
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
@@ -91,12 +95,10 @@ class GraphLocalizer:
                                                tgt_imgs, partial_imgs_pool)
             reverse_output_probs: torch.Tensor = infer(self._direction_net, self._device,
                                                partial_imgs_pool, tgt_imgs)
-            # partial_same_confs: List[float] = output_probs[:, 3].tolist()
             partial_same_confs: List[float] = ((output_probs[:, 3] + reverse_output_probs[:, 3])/2).tolist()
             all_same_confs += partial_same_confs
 
         max_conf: float = max(all_same_confs)
-        # print(f"max_conf: {max_conf}")
         max_conf_idx = all_same_confs.index(max_conf)
 
         return nodes_pool[max_conf_idx], max_conf
@@ -116,7 +118,7 @@ class GraphLocalizer:
         
         nearest_node, conf = self._localize_node(observed_img, nodes_pool)
         if  conf < self._param.global_localize_conf_th:
-            rospy.loginfo("global_localizeing...")
+            rospy.loginfo("global_localizing...")
             nearest_node, _ = self._localize_node(observed_img, list(self._graph.nodes))
 
         return nearest_node
@@ -184,7 +186,6 @@ class GraphLocalizer:
         goal_node:str = self._predict_goal_node(self._goal_image)
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
-        # while False:
             if self._observed_image is None: continue
             nearest_node: str = self._predict_nearest_node(self._observed_image)
             self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
@@ -193,10 +194,10 @@ class GraphLocalizer:
             nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
             goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
             self._nearest_node_marker_pub.publish(nearest_node_marker)
-            self._goal_node_pub.publish(goal_node_marker)
-            # print(f"nearest_node: {nearest_node}")
-            # print(infer(self._direction_net, self._device, self._observed_image, 
-            #     self._graph.nodes["0_0"]['img']))
+            self._goal_node_marker_pub.publish(goal_node_marker)
+
+            self._nearest_node_id_pub.publish(nearest_node)
+            self._goal_node_id_pub.publish(goal_node)
 
             self._before_node = nearest_node
             self._observed_image = None

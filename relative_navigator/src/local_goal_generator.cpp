@@ -39,9 +39,7 @@ namespace relative_navigator
         {
             weighted_mean_angle += angle * orientation_label_conf[i];
             i++;
-            // std::cout << "partial: " << angle*orientation_label_conf[i];
         }
-        // std::cout << "angle: " << weighted_mean_angle << std::endl;
 
         return weighted_mean_angle;
     }
@@ -58,8 +56,6 @@ namespace relative_navigator
             weighted_mean_y += std::sin(angle) * dist_to_local_goal * direction_label_conf[i];
             i++;
         }
-        // 
-        // weighted_mean_x += dist_to_local_goal * direction_label_conf.back();
 
         geometry_msgs::Pose weighted_mean_pose;
         weighted_mean_pose.position.x = weighted_mean_x;
@@ -72,18 +68,7 @@ namespace relative_navigator
             relative_navigator_msgs::RelPoseLabel rel_pose_label, int bin_num,
             float bin_step_degree, float dist_to_local_goal) 
     {
-        // auto label_to_angle_rad = [&](int label) -> std::optional<float> {
-        //     if(label == bin_num) return std::nullopt;
-        //     float angle_degree = bin_step_degree * int(bin_num / 2) - bin_step_degree * label;
-        //
-        //     return angle_degree * (M_PI/180); // degree to radian
-        // };
         std::vector<float> angle_for_each_label = calc_angle_for_each_label(bin_num, bin_step_degree);
-        // for(const auto& angle: angle_for_each_label)
-        // {
-        //
-        //     std::cout << angle << std::endl;
-        // }
         float weighted_mean_angle = calc_weighted_mean_angle(
                 angle_for_each_label,rel_pose_label.orientation_label_conf);
 
@@ -98,21 +83,6 @@ namespace relative_navigator
         local_goal.header.frame_id = "base_link";
 
         local_goal.pose = weighted_mean_pose;
-
-
-        // const std::optional<float> direction_angle = label_to_angle_rad(rel_pose_label.direction_label);
-        // const std::optional<float> orientation_angle = label_to_angle_rad(rel_pose_label.orientation_label);
-        // if(direction_angle.has_value())
-        // {
-        //     float local_goal_x = std::cos(direction_angle.value()) * dist_to_local_goal;
-        //     float local_goal_y = std::sin(direction_angle.value()) * dist_to_local_goal;
-        //
-        //     local_goal.pose.position.x = local_goal_x;
-        //     local_goal.pose.position.y = local_goal_y;
-        // }
-        //
-        // else 
-        //     tf::quaternionTFToMsg(tf::createQuaternionFromYaw(orientation_angle.value()), local_goal.pose.orientation);
 
         return local_goal;
     }
@@ -129,9 +99,9 @@ namespace relative_navigator
                         rel_pose_label_.value(), param_.bin_num,
                         param_.bin_step_degree, param_.dist_to_local_goal);
 
-                // 予測ラベルがnegativeのときはpubしない
-                if(rel_pose_label_.value().direction_label != 4)
-                    local_goal_pub_.publish(local_goal);
+                if(rel_pose_label_.value().direction_label == 4)
+                    ROS_WARN("Direction label is negative");
+                local_goal_pub_.publish(local_goal);
                 rel_pose_label_.reset();
             }
             ros::spinOnce();

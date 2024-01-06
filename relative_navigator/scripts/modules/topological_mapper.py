@@ -78,22 +78,22 @@ class TopologicalMapper:
         self._graph = nx.DiGraph()
         # self._graph = nx.Graph()
 
-    def _are_diff_nodes(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
-
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
-        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
-
-        direction_max_idx = direction_probs.max(0).indices
-        orientation_max_idx = orientation_probs.max(0).indices
-        
-        # ラベルが変位ありの場合違うノードとする
-        if direction_max_idx <= 2: return True
-
-        # 変位なしで方位が違う場合も違うノードとする
-        if direction_max_idx == 3 and (orientation_max_idx == 0 or orientation_max_idx == 2):
-            return True
-
-        return False
+    # def _are_diff_nodes(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
+    #
+    #     direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
+    #     orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
+    #
+    #     direction_max_idx = direction_probs.max(0).indices
+    #     orientation_max_idx = orientation_probs.max(0).indices
+    #     
+    #     # ラベルが変位ありの場合違うノードとする
+    #     if direction_max_idx <= 2: return True
+    #
+    #     # 変位なしで方位が違う場合も違うノードとする
+    #     if direction_max_idx == 3 and (orientation_max_idx == 0 or orientation_max_idx == 2):
+    #         return True
+    #
+    #     return False
 
     def _are_different_enough(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
@@ -146,23 +146,23 @@ class TopologicalMapper:
         rospy.loginfo(f"bag id: {bag_id} is finished\n {node_count} nodes is added.")
 
     # pred label and conf
-    def _pred_edge(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[Tuple[str, float]]:
-
-        # 計算量を抑えるためdirectionの予測だけで確定する場合を先に処理する
-        direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
-        direction_max_idx = int(direction_probs.max(0).indices)
-        direction_label_conf = float(direction_probs[direction_max_idx])
-
-        if direction_max_idx == 4: return None # negativeラベルの時はエッジ作らない
-        if direction_max_idx < 3: return "dir"+str(direction_max_idx), direction_label_conf
-
-        # direction label がsame(3)の時の処理
-        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
-        orientation_max_idx = int(orientation_probs.max(0).indices)
-        orientation_label_conf = float(orientation_probs[orientation_max_idx])
-
-        if orientation_max_idx == 1: return None # orientationに変化がない時はエッジ作らない
-        return "ori"+str(orientation_max_idx), orientation_label_conf
+    # def _pred_edge(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[Tuple[str, float]]:
+    #
+    #     # 計算量を抑えるためdirectionの予測だけで確定する場合を先に処理する
+    #     direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
+    #     direction_max_idx = int(direction_probs.max(0).indices)
+    #     direction_label_conf = float(direction_probs[direction_max_idx])
+    #
+    #     if direction_max_idx == 4: return None # negativeラベルの時はエッジ作らない
+    #     if direction_max_idx < 3: return "dir"+str(direction_max_idx), direction_label_conf
+    #
+    #     # direction label がsame(3)の時の処理
+    #     orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
+    #     orientation_max_idx = int(orientation_probs.max(0).indices)
+    #     orientation_label_conf = float(orientation_probs[orientation_max_idx])
+    #
+    #     if orientation_max_idx == 1: return None # orientationに変化がない時はエッジ作らない
+    #     return "ori"+str(orientation_max_idx), orientation_label_conf
 
     # pred conf of "same" label
     # def _pred_same_conf(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> Optional[float]:
@@ -175,37 +175,37 @@ class TopologicalMapper:
         return float(direction_probs[3])
 
     # return node_name and conf_of_label
-    def _find_node_connected_by_designated_label(self, src_node, label: str) -> Optional[Tuple[str, float]]:
-        for tgt_node, attribute in self._graph.succ[src_node].items():
-            if attribute['label'] == label:
-                return tgt_node, attribute['conf']
+    # def _find_node_connected_by_designated_label(self, src_node, label: str) -> Optional[Tuple[str, float]]:
+    #     for tgt_node, attribute in self._graph.succ[src_node].items():
+    #         if attribute['label'] == label:
+    #             return tgt_node, attribute['conf']
+    #
+    #     return None
 
-        return None
-
-    def _add_edges(self, graph: nx.DiGraph) -> None:
-
-        for src_node, src_img in dict(graph.nodes.data('img')).items():
-            for tgt_node, tgt_img in dict(graph.nodes.data('img')).items():
-                edge_info: Optional[Tuple[str, float]] = self._pred_edge(src_img, tgt_img)
-                if edge_info == None: continue
-
-                label, conf = edge_info
-                if conf < self._param.label_conf_th: continue
-                edge_weigth = self._param.orientation_edge_weigth_ratio if "ori" in label else 1
-
-                competing_node_info: Optional[Tuple[str, float]] = \
-                    self._find_node_connected_by_designated_label(src_node, label)
-
-                if competing_node_info == None:
-                    graph.add_edge(src_node, tgt_node,
-                                   label=label, conf=conf, weight=edge_weigth, required=False)
-                    continue
-
-                competing_node, competing_edge_conf = competing_node_info
-                if conf > competing_edge_conf:
-                    graph.add_edge(src_node, tgt_node, label=label, conf=conf, weight=edge_weigth,
-                                   required=False)
-                    graph.remove_edge(src_node, competing_node)
+    # def _add_edges(self, graph: nx.DiGraph) -> None:
+    #
+    #     for src_node, src_img in dict(graph.nodes.data('img')).items():
+    #         for tgt_node, tgt_img in dict(graph.nodes.data('img')).items():
+    #             edge_info: Optional[Tuple[str, float]] = self._pred_edge(src_img, tgt_img)
+    #             if edge_info == None: continue
+    #
+    #             label, conf = edge_info
+    #             if conf < self._param.label_conf_th: continue
+    #             edge_weigth = self._param.orientation_edge_weigth_ratio if "ori" in label else 1
+    #
+    #             competing_node_info: Optional[Tuple[str, float]] = \
+    #                 self._find_node_connected_by_designated_label(src_node, label)
+    #
+    #             if competing_node_info == None:
+    #                 graph.add_edge(src_node, tgt_node,
+    #                                label=label, conf=conf, weight=edge_weigth, required=False)
+    #                 continue
+    #
+    #             competing_node, competing_edge_conf = competing_node_info
+    #             if conf > competing_edge_conf:
+    #                 graph.add_edge(src_node, tgt_node, label=label, conf=conf, weight=edge_weigth,
+    #                                required=False)
+    #                 graph.remove_edge(src_node, competing_node)
 
     def _add_edges2(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
 

@@ -93,7 +93,7 @@ namespace relative_navigator
             ros::Subscriber odometry_sub_;
             ros::Publisher control_input_pub_;
             ros::Publisher reaching_target_pose_flag_pub_;
-            ros::Publisher local_goal_pub_;
+            // ros::Publisher local_goal_pub_;
             ros::Publisher best_local_path_pub_;
             ros::Publisher candidate_local_path_pub_;
     };

@@ -1,5 +1,3 @@
-#include "geometry_msgs/PoseStamped.h"
-#include "ros/publisher.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -26,7 +24,7 @@ namespace relative_navigator
         local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
         odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
         reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
-        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
+        // local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
         control_input_pub_ = nh.advertise<geometry_msgs::Twist>("local_path/cmd_vel", 1);
         best_local_path_pub_ = nh.advertise<nav_msgs::Path>("best_local_path", 1);
         candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("candidate_local_path", 1);
@@ -62,8 +60,6 @@ namespace relative_navigator
 
     double LocalPathPlanner::adjust_yaw(double yaw)
     {
-        // if(yaw > M_PI){yaw -= 2*M_PI;}
-        // if(yaw < -M_PI){yaw += 2*M_PI;}
         if(yaw > M_PI) return yaw - 2*M_PI;
         if(yaw < -M_PI) return yaw + 2*M_PI;
 
@@ -172,7 +168,6 @@ namespace relative_navigator
         State last_state = trajectory.back();
         double delta_x = target_pose.pose.position.x - last_state.x;
         double delta_y = target_pose.pose.position.y - last_state.y;
-        // double dist_paths_end_to_goal = std::sqrt(std::pow(delta_x, 2) + std::pow(delta_y, 2));
         double dist_paths_end_to_goal = std::hypot(delta_x, delta_y);
 
         double dist_paths_start_to_goal = calc_dist_from_pose(target_pose.pose);
