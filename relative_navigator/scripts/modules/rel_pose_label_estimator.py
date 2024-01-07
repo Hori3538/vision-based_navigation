@@ -14,26 +14,30 @@ from .utils import compressed_image_to_tensor, infer
 
 @dataclass(frozen=True)
 class Param:
-    hz: float
-    direction_net_weight_path: str
-    orientation_net_weight_path: str
     image_width: int
     image_height: int
+
+    hz: float
+
+    direction_net_weight_path: str
+    orientation_net_weight_path: str
     observed_image_topic_name: str
     reference_image_topic_name: str
 
 class RelPoseLabelEstimator:
     def __init__(self) -> None:
-        rospy.init_node("relative_pose_label_estimator")
+        rospy.init_node("rel_pose_label_estimator")
 
         self._param: Param = Param(
-                rospy.get_param("~hz", 10),
-                rospy.get_param("~direction_net_weight_path", ""),
-                rospy.get_param("~orientation_net_weight_path", ""),
-                rospy.get_param("~image_width", 224),
-                rospy.get_param("~image_height", 224),
-                rospy.get_param("~observed_image_topic_name", "/usb_cam/image_raw/compressed"),
-                rospy.get_param("~reference_image_topic_name", ""),
+                cast(int, rospy.get_param("/common/image_width")),
+                cast(int, rospy.get_param("/common/image_height")),
+
+                cast(int, rospy.get_param("~hz")),
+
+                cast(str, rospy.get_param("~direction_net_weight_path")),
+                cast(str, rospy.get_param("~orientation_net_weight_path")),
+                cast(str, rospy.get_param("~observed_image_topic_name")),
+                cast(str, rospy.get_param("~reference_image_topic_name")),
             )
 
         # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
@@ -59,7 +63,7 @@ class RelPoseLabelEstimator:
                 CompressedImage, self._reference_image_callback, queue_size=1)
 
         self._rel_pose_label_pub: rospy.Publisher = rospy.Publisher(
-                "/rel_pose_label_estimator/rel_pose_label", RelPoseLabel, queue_size=1)
+                "~rel_pose_label", RelPoseLabel, queue_size=1)
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = compressed_image_to_tensor(msg,

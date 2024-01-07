@@ -1,0 +1,48 @@
+common:
+  image_width: 224
+  image_height: 224
+  observed_image_width: 1280
+  observed_image_height: 720
+
+topological_map_visualizer:
+  hz: 0.1
+
+graph_localizer:
+  hz: 5
+  batch_size: 32
+  global_localize_conf_th: 0.4
+  candidate_neibors_num: 2
+
+graph_path_planner:
+  hz: 5
+  first_waypoint_dist: 2
+
+relative_pose_label_estimator:
+  hz: 10
+
+local_goal_generator:
+  hz: 10
+  dist_to_local_goal: 1.5
+  bin_num: 3
+  bin_step_degree: 25
+
+local_path_planner:
+  hz: 10
+  goal_dist_th: 0.4
+  goal_yaw_th: 0.16
+  predict_dt: 0.1
+  predict_time: 3.0
+  velocity_reso: 0.02
+  yawrate_reso: 0.05
+
+  heading_score_gain: 1.2
+  approaching_score_gain: 1.0
+
+  robot_radius: 0.5
+  max_speed: 0.3
+  min_speed: 0.0
+  max_yawrate: 2.0
+  max_accel: 10.0
+  max_dyawrate: 6.0
+  collision_th: 0.3
+

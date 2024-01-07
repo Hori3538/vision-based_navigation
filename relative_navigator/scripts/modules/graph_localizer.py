@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 import torch
+from torchvision.io import read_image
+import torchvision.transforms.functional as F
 from typing import Optional, Union, List, Tuple, cast
 import networkx as nx
 
@@ -18,36 +20,44 @@ from .topological_map_io import load_topological_map
 class Param:
     image_width: int
     image_height: int
+    observed_image_width: int
+    observed_image_height: int
+
+    hz: float
+    batch_size: int
+    global_localize_conf_th: float
+    candidate_neibors_num: int
 
     direction_net_weight_path: str
     orientation_net_weight_path: str
-    observed_image_topic_name: str
-
-    hz: float
+    goal_img_path: str
     map_path: str
-    batch_size: int
-    global_localize_conf_th: float
-    candite_neibors_num: int
+    observed_image_topic_name: str
 
 class GraphLocalizer:
     def __init__(self) -> None:
         rospy.init_node("graph_localizer")
 
         self._param: Param = Param(
-                rospy.get_param("~image_width", 224),
-                rospy.get_param("~image_height", 224),
-                rospy.get_param("~direction_net_weight_path", ""),
-                rospy.get_param("~orientation_net_weight_path", ""),
-                rospy.get_param("~observed_image_topic_name", "/grasscam/image_raw/compressed"),
-                rospy.get_param("~hz", 5),
+                cast(int, rospy.get_param("/common/image_width")),
+                cast(int, rospy.get_param("/common/image_height")),
+                cast(int, rospy.get_param("/common/observed_image_width")),
+                cast(int, rospy.get_param("/common/observed_image_height")),
+
+                cast(float, rospy.get_param("~hz")),
+                cast(int, rospy.get_param("~batch_size")),
+                cast(float, rospy.get_param("~global_localize_conf_th")),
+                cast(int, rospy.get_param("~candidate_neibors_num")),
+
+                cast(str, rospy.get_param("~direction_net_weight_path")),
+                cast(str, rospy.get_param("~orientation_net_weight_path")),
+                cast(str, rospy.get_param("~goal_img_path")),
                 cast(str, rospy.get_param("~map_path")),
-                rospy.get_param("~batch_size", 32),
-                rospy.get_param("~global_localize_conf_th", 0.4),
-                rospy.get_param("~candite_neibors_num", 2),
+                cast(str, rospy.get_param("~observed_image_topic_name")),
             )
 
-        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        # self._device: str = "cpu"
+        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        self._device: str = "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
@@ -72,7 +82,11 @@ class GraphLocalizer:
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._before_node: Optional[str] = None
-        self._goal_image: torch.Tensor = self._graph.nodes["0_180"]['img']
+
+        goal_img: torch.Tensor = read_image(path=self._param.goal_img_path)[[2,1,0],:,:].unsqueeze(0)/255
+        self._goal_image: torch.Tensor = F.resize(img=goal_img,
+                size=[self._param.image_height, self._param.image_width])
+        # self._goal_image: torch.Tensor = self._graph.nodes["0_180"]['img']
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = compressed_image_to_tensor(msg,
@@ -108,7 +122,7 @@ class GraphLocalizer:
         if self._before_node == None: nodes_pool = list(self._graph.nodes)
         else:
             nodes_pool = [self._before_node]
-            for _ in range(self._param.candite_neibors_num):
+            for _ in range(self._param.candidate_neibors_num):
                 nodes_pool_tmp: List[str] = []
                 for node in nodes_pool: 
                     nodes_pool_tmp += list(nx.neighbors(self._graph, node))
@@ -118,8 +132,9 @@ class GraphLocalizer:
         
         nearest_node, conf = self._localize_node(observed_img, nodes_pool)
         if  conf < self._param.global_localize_conf_th:
-            rospy.loginfo("global_localizing...")
+            rospy.loginfo("global localizing...")
             nearest_node, _ = self._localize_node(observed_img, list(self._graph.nodes))
+            rospy.loginfo("global localized")
 
         return nearest_node
 
@@ -131,7 +146,8 @@ class GraphLocalizer:
 
     def _publish_img(self, img: torch.Tensor, publisher: rospy.Publisher) -> None:
         img_msg: CompressedImage = tensor_to_compressed_image(img,
-                (self._param.image_height, self._param.image_width))
+                # (self._param.image_height, int(self._param.image_height*self._param.original_image_width/self._param.original_image_height)))
+                (self._param.observed_image_width, self._param.observed_image_height))
         publisher.publish(img_msg)
 
     def _create_nearest_marker_node(self, node_name: str) -> Marker:
@@ -183,21 +199,26 @@ class GraphLocalizer:
         return marker
 
     def process(self) -> None:
+
+        rospy.loginfo("localizing goal node...")
         goal_node:str = self._predict_goal_node(self._goal_image)
+        rospy.loginfo("goal node is localized")
+        goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
+
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
-            if self._observed_image is None: continue
-            nearest_node: str = self._predict_nearest_node(self._observed_image)
-            self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
-            self._publish_img(self._goal_image, self._goal_img_pub)
 
-            nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
-            goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
-            self._nearest_node_marker_pub.publish(nearest_node_marker)
+            self._publish_img(self._goal_image, self._goal_img_pub)
+            self._goal_node_id_pub.publish(goal_node)
             self._goal_node_marker_pub.publish(goal_node_marker)
 
+            if self._observed_image is None: continue
+
+            nearest_node: str = self._predict_nearest_node(self._observed_image)
+            self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
+            nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
+            self._nearest_node_marker_pub.publish(nearest_node_marker)
             self._nearest_node_id_pub.publish(nearest_node)
-            self._goal_node_id_pub.publish(goal_node)
 
             self._before_node = nearest_node
             self._observed_image = None

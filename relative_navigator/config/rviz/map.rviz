@@ -102,7 +102,7 @@ Visualization Manager:
       Marker Topic: /graph_localizer/nearest_node_marker
       Name: Marker
       Namespaces:
-        nearest_node: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -118,7 +118,7 @@ Visualization Manager:
       Marker Topic: /graph_path_planner/shortest_path
       Name: Marker
       Namespaces:
-        path: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -149,7 +149,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 174.59165954589844
+      Distance: 108.76753234863281
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -157,9 +157,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 7.749593257904053
-        Y: -81.91340637207031
-        Z: 0.0025820634327828884
+        X: 0.9256368279457092
+        Y: -76.18971252441406
+        Z: -0.003983424045145512
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -167,7 +167,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 3.2003965377807617
+      Yaw: 3.185396432876587
     Saved: ~
 Window Geometry:
   Displays:

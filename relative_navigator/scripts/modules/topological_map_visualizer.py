@@ -12,6 +12,7 @@ from .topological_map_io import load_topological_map
 @dataclass(frozen=True)
 class Param:
     hz: float
+    
     map_path: str
 
 class TopologicalMapVisualizer:
@@ -19,6 +20,7 @@ class TopologicalMapVisualizer:
         rospy.init_node("topological_map_visualizer")
         self._param = Param(
             cast(float, rospy.get_param("~hz")),
+
             cast(str, rospy.get_param("~map_path")),
         )
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)

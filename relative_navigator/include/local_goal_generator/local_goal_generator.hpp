@@ -14,10 +14,8 @@ namespace relative_navigator
     struct Param
     {
         int hz;
-
         // モデルの学習時に用いたラベリングの閾値同じ値を使う
         float dist_to_local_goal;
-
         int bin_num;
         float bin_step_degree;
     };

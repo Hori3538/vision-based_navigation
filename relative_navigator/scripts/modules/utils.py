@@ -5,6 +5,8 @@ from networkx.algorithms import partition_spanning_tree
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torchvision.transforms.functional import to_tensor
+from PIL import Image
 
 from sensor_msgs.msg import CompressedImage
 from nav_msgs.msg import Odometry

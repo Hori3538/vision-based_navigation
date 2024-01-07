@@ -1,6 +1,3 @@
-#include "geometry_msgs/PoseArray.h"
-#include "sensor_msgs/LaserScan.h"
-#include <cmath>
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -12,19 +9,20 @@ namespace relative_navigator
         private_nh.param<double>("goal_yaw_th", param_.goal_yaw_th, 0.16);
         private_nh.param<double>("predict_dt", param_.predict_dt, 0.1);
         private_nh.param<double>("predict_time", param_.predict_time, 3.0);
-        private_nh.param<double>("velocity_reso", param_.velocity_reso, 0.05);
-        private_nh.param<double>("heading_score_gain", param_.heading_score_gain, 0.05);
+        private_nh.param<double>("velocity_reso", param_.velocity_reso, 0.02);
+        private_nh.param<double>("yawrate_reso", param_.yawrate_reso, 0.05);
+        private_nh.param<double>("heading_score_gain", param_.heading_score_gain, 1.2);
         private_nh.param<double>("approaching_score_gain", param_.approaching_score_gain, 1.0);
-        private_nh.param<double>("yawrate_reso", param_.yawrate_reso, 0.1);
-        private_nh.param<double>("robot_radius", param_.robot_radius, 0.5);
+        private_nh.param<double>("robot_radius", param_.robot_radius,  0.5);
         private_nh.param<double>("max_speed", param_.max_speed, 0.3);
         private_nh.param<double>("min_speed", param_.min_speed, 0.0);
-        private_nh.param<double>("max_yawrate", param_.max_yawrate, 1.0);
-        private_nh.param<double>("max_accel", param_.max_accel, 3.0);
-        private_nh.param<double>("max_dyawrate", param_.max_dyawrate, 5.0);
-        private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/whill/odom");
-        private_nh.param<std::string>("scan_topic_name", param_.scan_topic_name, "/scan");
+        private_nh.param<double>("max_yawrate", param_.max_yawrate, 2.0);
+        private_nh.param<double>("max_accel", param_.max_accel, 10.0);
+        private_nh.param<double>("max_dyawrate", param_.max_dyawrate, 6.0);
         private_nh.param<float>("collision_th", param_.collision_th, 0.3);
+
+        private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/odom");
+        private_nh.param<std::string>("scan_topic_name", param_.scan_topic_name, "/scan");
 
         local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
         odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
@@ -32,9 +30,9 @@ namespace relative_navigator
 
         // reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
         // local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
-        control_input_pub_ = nh.advertise<geometry_msgs::Twist>("local_path/cmd_vel", 1);
-        best_local_path_pub_ = nh.advertise<nav_msgs::Path>("best_local_path", 1);
-        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("candidate_local_path", 1);
+        control_input_pub_ = nh.advertise<geometry_msgs::Twist>("/local_path/cmd_vel", 1);
+        best_local_path_pub_ = nh.advertise<nav_msgs::Path>("/best_local_path", 1);
+        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("/candidate_local_path", 1);
     }
 
     void LocalPathPlanner::local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg)

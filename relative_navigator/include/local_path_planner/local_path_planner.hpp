@@ -20,7 +20,6 @@
 #include <tf2/utils.h>
 #include <tf/tf.h>
 
-
 // To Do 障害物関連の処理がガバガバなのをどうにかする
 namespace relative_navigator
 {
@@ -42,11 +41,10 @@ namespace relative_navigator
         double max_yawrate;
         double max_accel;
         double max_dyawrate;
+        float collision_th;
 
         std::string odom_topic_name;
         std::string scan_topic_name;
-
-        float collision_th;
     };
 
     struct State

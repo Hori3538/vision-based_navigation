@@ -18,20 +18,28 @@ from .utils import tensor_to_compressed_image
 class Param:
     image_width: int
     image_height: int
+    observed_image_width: int
+    observed_image_height: int
+
     hz: float
-    map_path: str
     first_waypoint_dist: int
+
+    map_path: str
 
 class GraphPathPlanner:
     def __init__(self) -> None:
         rospy.init_node("graph_path_planner")
 
         self._param: Param = Param(
-                rospy.get_param("~image_width", 224),
-                rospy.get_param("~image_height", 224),
-                rospy.get_param("~hz", 5),
+                cast(int, rospy.get_param("/common/image_width")),
+                cast(int, rospy.get_param("/common/image_height")),
+                cast(int, rospy.get_param("/common/observed_image_width")),
+                cast(int, rospy.get_param("/common/observed_image_height")),
+
+                cast(float, rospy.get_param("~hz")),
+                cast(int, rospy.get_param("~first_waypoint_dist")),
+
                 cast(str, rospy.get_param("~map_path")),
-                rospy.get_param("~first_waypoint_dist", 2),
             )
 
         self._goal_node_id: Optional[str] = None
@@ -115,10 +123,13 @@ class GraphPathPlanner:
             if self._goal_node_id is None or self._nearest_node_id is None: continue
             if self._goal_node_id == self._nearest_node_id:
                 rospy.loginfo(f"reaching goal")
+                self._nearest_node_id = None
                 continue
 
             shortest_path: Optional[List[str]] = self._calc_shortest_path(self._nearest_node_id, self._goal_node_id)
-            if shortest_path is None: continue
+            if shortest_path is None:
+                self._nearest_node_id = None
+                continue
 
             shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)
             self._visualize_path(shortest_path_marker)
@@ -128,7 +139,7 @@ class GraphPathPlanner:
             first_waypoint_img_tensor: torch.Tensor = self._graph.nodes[first_waypoint_id]['img']
             first_waypoint_img_msg: CompressedImage = tensor_to_compressed_image(
                     first_waypoint_img_tensor,
-                    (self._param.image_height, self._param.image_width)
+                    (self._param.observed_image_width, self._param.observed_image_height)
                     )
 
             self._first_waypoint_id_pub.publish(first_waypoint_id)
