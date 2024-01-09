@@ -56,11 +56,9 @@ def main():
 
     # train_dataset = DatasetForDirectionNet(args.train_dataset_dirs, use_transform=True)
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
-    print(f"hoge")
     DatasetForDirectionNet.equalize_label_counts(train_dataset)
     valid_dataset = DatasetForDirectionNet(args.valid_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(valid_dataset)
-    print(f"hoge2")
 
     num_data: int = min(args.num_data, len(train_dataset))
     train_dataset, _ = random_split(train_dataset, [num_data, len(train_dataset) - num_data],
@@ -71,7 +69,6 @@ def main():
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
             shuffle=True, drop_last=True, num_workers=args.num_workers)
 
-    print(f"hoge3")
     train_transform = nn.Sequential(
             transforms.ColorJitter(
                 brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
@@ -83,7 +80,8 @@ def main():
     print(f"direction_label_counts: {direction_label_counts}")
     criterion_for_direction = FocalLoss(fl_gamma=2,
                                         samples_per_class=direction_label_counts.tolist(),
-                                        class_balanced=True, beta=0.99)
+                                        # class_balanced=True, beta=0.99)
+                                        class_balanced=False, beta=0.99)
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     step_size_up: int = 8 * len(train_dataset) / args.batch_size
     scheduler = optim.lr_scheduler.CyclicLR(

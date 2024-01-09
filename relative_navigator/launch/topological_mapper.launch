@@ -1,26 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/without_center_perimeter_full_1222/best_acc.pt"/>
-    <arg name="orientation_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/without_center_perimeter_full_1222/best_acc.pt"/>
+    <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/full/best_acc.pt"/>
 
-    <arg name="bagfiles_dir" default="/home/amsl/bag/abstrelposnet/dkan_perimeter/for_map"/>
+    <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map"/>
     <!-- <arg name="bagfiles_dir" default="/home/amsl/bag/abstrelposnet/center_perimeter/for_map"/> -->
     <!-- <arg name="map_save_dir" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/center_perimeter"/> -->
+    <!-- <arg name="map_save_dir" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/test"/> -->
     <arg name="map_save_dir" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter"/>
-    <arg name="map_name" default="dkan_perimeter_multi_test.pkl"/>
-    <!-- <arg name="map_name" default="center_perimeter_test.pkl"/> -->
+    <arg name="map_name" default="dkan_perimeter_single_full"/>
+    <!-- <arg name="map_name" default="center_perimeter_test"/> -->
 
 
     <!-- <node pkg="relative_navigator" type="topological_mapper_node.py" name="topological_mapper" ns="relative_navigator" output="screen" unless="$(arg use_timenet)"> -->
     <node pkg="relative_navigator" type="topological_mapper_node.py" name="topological_mapper" output="screen">
         <rosparam subst_value="True">
             direction_net_weight_path: $(arg direction_net_weight_path)
-            orientation_net_weight_path: $(arg orientation_net_weight_path)
             bagfiles_dir: $(arg bagfiles_dir)
             map_save_dir: $(arg map_save_dir)
             map_name: $(arg map_name)
-            <!-- divide_conf_th: 0.9 -->
-            <!-- connect_conf_th: 0.65 -->
+
+            image_topic_name: "/grasscam/image_raw/compressed"
+            <!-- pose_topic_name: "/whill/odom" -->
+            <!-- pose_topic_type: "Odometry" -->
+            pose_topic_name: "/localized_pose"
+            pose_topic_type: "PoseWithCovarianceStamped"
+
             divide_conf_th: 0.7
             connect_conf_th: 0.5
             edge_num_th: 10

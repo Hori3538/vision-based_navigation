@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+    <!-- <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/without_center_perimeter_full_whill_infant/best_acc.pt"/> -->
+    <!-- <arg name="orientation_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/without_center_perimeter_full_whill_infant/best_acc.pt"/> -->
+    <arg name="direction_net_weight_path" default="/home/amsl/hori/vision_nav/weights/direction/full/best_acc.pt"/>
+    <arg name="orientation_net_weight_path" default="/home/amsl/hori/vision_nav/weights/orientation/full/best_acc.pt"/>
+
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/center_perimeter/center_perimeter_test.pkl"/> -->
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_test.pkl"/> -->
-    <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/without_center_perimeter_full_1222/best_acc.pt"/>
-    <arg name="orientation_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/without_center_perimeter_full_1222/best_acc.pt"/>
+    <arg name="map_path" default="/home/amsl/hori/vision_nav/map/dkan_perimeter_single_full.pkl"/>
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_180.jpg"/> -->
+    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_197.jpg"/>
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_46.jpg"/> -->
 
-    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_multi_test.pkl"/>
-    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_180.jpg"/>
     <arg name="observed_image_topic_name" default="/grasscam/image_raw/compressed"/>
 
     <rosparam command="load" file="$(find relative_navigator)/config/param/all_system_base.yaml"/>
@@ -25,7 +30,7 @@
             map_path: $(arg map_path)
             observed_image_topic_name: $(arg observed_image_topic_name)
 
-            batch_size: 16
+            <!-- batch_size: 16 -->
         </rosparam>
     </node>
 
@@ -46,11 +51,9 @@
     </node>
 
   <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator" output="screen">
-    <!-- <rosparam file="$(find relative_navigator)/config/param/local_goal_generator.yaml" command="load"/> -->
   </node>
 
   <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner" output="screen">
-    <!-- <rosparam file="$(find relative_navigator)/config/param/local_path_planner.yaml" command="load"/> -->
         <rosparam subst_value="True">
             odom_topic_name: "/whill/odom"
             scan_topic_name: "/front_hokuyo/scan"

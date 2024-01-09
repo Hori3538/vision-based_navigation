@@ -27,6 +27,7 @@ class Param:
     batch_size: int
     global_localize_conf_th: float
     candidate_neibors_num: int
+    global_candidate_neibors_num: int
 
     direction_net_weight_path: str
     orientation_net_weight_path: str
@@ -48,6 +49,7 @@ class GraphLocalizer:
                 cast(int, rospy.get_param("~batch_size")),
                 cast(float, rospy.get_param("~global_localize_conf_th")),
                 cast(int, rospy.get_param("~candidate_neibors_num")),
+                cast(int, rospy.get_param("~global_candidate_neibors_num")),
 
                 cast(str, rospy.get_param("~direction_net_weight_path")),
                 cast(str, rospy.get_param("~orientation_net_weight_path")),
@@ -56,8 +58,8 @@ class GraphLocalizer:
                 cast(str, rospy.get_param("~observed_image_topic_name")),
             )
 
-        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        self._device: str = "cpu"
+        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
@@ -80,6 +82,7 @@ class GraphLocalizer:
         self._nearest_node_id_pub = rospy.Publisher("~nearest_node_id", String, queue_size=1, tcp_nodelay=True)
         self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=1, tcp_nodelay=True)
 
+        # self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._before_node: Optional[str] = None
 
@@ -109,6 +112,7 @@ class GraphLocalizer:
                                                tgt_imgs, partial_imgs_pool)
             reverse_output_probs: torch.Tensor = infer(self._direction_net, self._device,
                                                partial_imgs_pool, tgt_imgs)
+            # partial_same_confs: List[float] = (output_probs[:, 3]).tolist()
             partial_same_confs: List[float] = ((output_probs[:, 3] + reverse_output_probs[:, 3])/2).tolist()
             all_same_confs += partial_same_confs
 
@@ -119,24 +123,33 @@ class GraphLocalizer:
 
     def _predict_nearest_node(self, observed_img: torch.Tensor) -> str:
         nodes_pool: List[str]
-        if self._before_node == None: nodes_pool = list(self._graph.nodes)
+        if self._before_node == None:
+            nodes_pool = list(self._graph.nodes)
+            rospy.loginfo("first global localizing...")
         else:
-            nodes_pool = [self._before_node]
-            for _ in range(self._param.candidate_neibors_num):
-                nodes_pool_tmp: List[str] = []
-                for node in nodes_pool: 
-                    nodes_pool_tmp += list(nx.neighbors(self._graph, node))
-                nodes_pool += nodes_pool_tmp
-                nodes_pool = list(set(nodes_pool))
+            nodes_pool = self._get_neibors(self._before_node, self._param.candidate_neibors_num)
 
-        
         nearest_node, conf = self._localize_node(observed_img, nodes_pool)
         if  conf < self._param.global_localize_conf_th:
             rospy.loginfo("global localizing...")
-            nearest_node, _ = self._localize_node(observed_img, list(self._graph.nodes))
-            rospy.loginfo("global localized")
+            nodes_pool = self._get_neibors(self._before_node, self._param.global_candidate_neibors_num)
+            nearest_node, _ = self._localize_node(observed_img, nodes_pool)
 
+        # rospy.loginfo(f"conf: {conf}")
         return nearest_node
+
+    def _get_neibors(self, node: str, search_depth: int) -> List[str]:
+        nodes_pool = [node]
+        for _ in range(search_depth):
+            nodes_pool_tmp: List[str] = []
+            for node in nodes_pool: 
+                nodes_pool_tmp += list(self._graph.succ[node])
+                nodes_pool_tmp += list(self._graph.pred[node])
+            nodes_pool_tmp = list(set(nodes_pool_tmp))
+            nodes_pool += nodes_pool_tmp
+            nodes_pool = list(dict.fromkeys(nodes_pool))
+
+        return nodes_pool
 
     def _predict_goal_node(self, observed_img: torch.Tensor) -> str:
         nodes_pool: List[str] = list(self._graph.nodes)
@@ -204,6 +217,8 @@ class GraphLocalizer:
         goal_node:str = self._predict_goal_node(self._goal_image)
         rospy.loginfo("goal node is localized")
         goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
+        # print(f"normal: {infer(self._direction_net, self._device, self._graph.nodes[goal_node]['img'], self._goal_image)}")
+        # print(f"reverwe: {infer(self._direction_net, self._device, self._goal_image,  self._graph.nodes[goal_node]['img'])}")
 
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
@@ -215,6 +230,8 @@ class GraphLocalizer:
             if self._observed_image is None: continue
 
             nearest_node: str = self._predict_nearest_node(self._observed_image)
+            # print(f"normal: {infer(self._direction_net, self._device, self._observed_image, self._graph.nodes[nearest_node]['img'])}")
+            # print(f"reverwe: {infer(self._direction_net, self._device, self._graph.nodes[nearest_node]['img'],  self._observed_image)}")
             self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
             nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
             self._nearest_node_marker_pub.publish(nearest_node_marker)

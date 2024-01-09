@@ -10,14 +10,17 @@ topological_map_visualizer:
 graph_localizer:
   hz: 5
   batch_size: 32
-  global_localize_conf_th: 0.4
-  candidate_neibors_num: 2
+  # global_localize_conf_th: 0.4
+  global_localize_conf_th: 0.00
+  # candidate_neibors_num: 2
+  candidate_neibors_num: 4
+  global_candidate_neibors_num: 5
 
 graph_path_planner:
   hz: 5
   first_waypoint_dist: 2
 
-relative_pose_label_estimator:
+rel_pose_label_estimator:
   hz: 10
 
 local_goal_generator:
@@ -45,4 +48,3 @@ local_path_planner:
   max_accel: 10.0
   max_dyawrate: 6.0
   collision_th: 0.3
-

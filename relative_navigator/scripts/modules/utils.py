@@ -56,6 +56,6 @@ def infer(model: Union[DirectionNet, OrientationNet], device: str,
 #     print("hoge")
 
 def msg_to_pose(msg: Any, type: str) -> Pose:
-    if type == "Odometry": return msg.pose.pose
+    if type=="Odometry" or type=="PoseWithCovarianceStamped": return msg.pose.pose
     if type == "PoseStamped": return msg.pose
     assert False, "Unknown message type"

@@ -32,7 +32,7 @@ class RelPoseLabelEstimator:
                 cast(int, rospy.get_param("/common/image_width")),
                 cast(int, rospy.get_param("/common/image_height")),
 
-                cast(int, rospy.get_param("~hz")),
+                cast(float, rospy.get_param("~hz")),
 
                 cast(str, rospy.get_param("~direction_net_weight_path")),
                 cast(str, rospy.get_param("~orientation_net_weight_path")),
@@ -40,8 +40,8 @@ class RelPoseLabelEstimator:
                 cast(str, rospy.get_param("~reference_image_topic_name")),
             )
 
-        # self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
-        self._device: str = "cpu"
+        self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
+        # self._device: str = "cpu"
 
         self._direction_net: DirectionNet = DirectionNet().to(self._device)
         self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))

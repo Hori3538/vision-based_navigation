@@ -54,9 +54,6 @@ class TopologicalMapVisualizer:
         marker = Marker()
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        # marker.scale.x = 0.2
-        # marker.scale.y = 0.2
-        # marker.scale.z = 0.2
         marker.scale.x = 0.07
         marker.scale.y = 0.07
         marker.scale.z = 0.07
