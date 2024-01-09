@@ -26,7 +26,6 @@ def main():
     parser.add_argument("-n", "--num-data", type=int, default=50000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
-    # parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=0)
     parser.add_argument("-e", "--num-epochs", type=int, default=30)
@@ -80,8 +79,8 @@ def main():
     print(f"direction_label_counts: {direction_label_counts}")
     criterion_for_direction = FocalLoss(fl_gamma=2,
                                         samples_per_class=direction_label_counts.tolist(),
-                                        # class_balanced=True, beta=0.99)
-                                        class_balanced=False, beta=0.99)
+                                        class_balanced=True, beta=0.99)
+                                        # class_balanced=False, beta=0.99)
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     step_size_up: int = 8 * len(train_dataset) / args.batch_size
     scheduler = optim.lr_scheduler.CyclicLR(

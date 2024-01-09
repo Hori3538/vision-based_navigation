@@ -170,21 +170,22 @@ class TopologicalMapper:
     def process(self) -> None:
 
         # add nodes process
-        for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*"))):
-            bag: Bag = Bag(bagfile_path)
-            self._add_nodes_from_bag(self._graph, bag, i)
+        # for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*"))):
+        #     bag: Bag = Bag(bagfile_path)
+        #     self._add_nodes_from_bag(self._graph, bag, i)
 
-        # self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name+".pkl"))
+        self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name+".pkl"))
         # add edges process
         # self._graph.remove_edges_from(list(self._graph.edges))
-        self._add_minimum_required_edges(self._graph)
-        self._add_edges2(self._graph)
-        self._delete_node_without_cycle(self._graph)
+        # self._add_minimum_required_edges(self._graph)
+        # self._add_edges2(self._graph)
+        # self._delete_node_without_cycle(self._graph)
         # self._edge_pruning(self._graph)
-        save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
+        # save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
 
         os.makedirs(os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"), exist_ok=True)
-        save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))
+        # save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))
+        print(f"edges: {dict(self._graph.edges)}")
         
         rospy.loginfo("Process fnished")
         rosnode.kill_nodes("topological_mapper")

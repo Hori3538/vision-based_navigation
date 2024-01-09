@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
-import torch.nn.functional as F
 
 class OrientationNet(nn.Module):
     def __init__(self, bin_num: int = 3) -> None:
@@ -23,7 +22,6 @@ class OrientationNet(nn.Module):
         out_channels_of_features: int = self.features[-1][0].out_channels
         self.classifier = nn.Sequential(
                     nn.Dropout(0.2, inplace=False),
-                    # nn.Linear(out_channels_of_features * 2, 256),
                     nn.Linear(out_channels_of_features, 256),
                     nn.ReLU(),
                     nn.Dropout(0.2, inplace=False),
@@ -37,18 +35,10 @@ class OrientationNet(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
 
-        # x1 = self.features(input1)
-        # x2 = self.features(input2)
-        #
-        # x = torch.cat((x1, x2), dim=1)
-        # x = self.avgpool(x)
-        # x = torch.flatten(x, 1)
-
         return self.classifier(x)
 
 def test():
     tensor = torch.zeros(2, 3, 224, 224)
-    # tensor = torch.zeros(3, 224, 224)
     model = OrientationNet()
     output = model(tensor, tensor)
     print(output.shape)

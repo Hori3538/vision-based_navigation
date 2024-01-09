@@ -63,7 +63,6 @@ class DatasetGeneratorForDirectionNet(DatasetGenerator):
 
         direction_label: List[float] = self._to_direction_label(relative_odom)
         orientation_label: List[float] = self._to_orientation_label(relative_odom)
-        # orientation_label: List[float] = [-1] * self._bin_num
 
         self._save_data(images,
                 torch.tensor(direction_label, dtype=torch.float32),
