@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from orientationnet import OrientationNet
+from my_models import OrientationNet
 from dataset_for_orientationnet import DatasetForOrientationNet
 from dnn_utils import fix_seed, image_tensor_cat_and_show
 

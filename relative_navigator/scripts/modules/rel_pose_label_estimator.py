@@ -8,8 +8,7 @@ from dataclasses import dataclass
 import torch
 from typing import Optional, cast
 
-from directionnet import DirectionNet
-from orientationnet import OrientationNet
+from my_models import DirectionNet, OrientationNet
 from .utils import compressed_image_to_tensor, infer
 
 @dataclass(frozen=True)

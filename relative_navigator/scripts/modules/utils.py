@@ -12,8 +12,7 @@ from sensor_msgs.msg import CompressedImage
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped, Pose
 
-from directionnet import DirectionNet
-from orientationnet import OrientationNet
+from my_models import DirectionNet, OrientationNet
 
 def compressed_image_to_tensor(
         compressed_image: CompressedImage, image_shape: Tuple[int, int]) -> torch.Tensor:

@@ -13,8 +13,7 @@ from geometry_msgs.msg import Pose
 
 from transformutils import get_array_2d_from_msg
 
-from directionnet import DirectionNet
-from orientationnet import OrientationNet
+from my_models import DirectionNet, OrientationNet
 from .topological_map_io import save_topological_map, load_topological_map, save_nodes_as_img
 from .utils import compressed_image_to_tensor, infer, msg_to_pose
 

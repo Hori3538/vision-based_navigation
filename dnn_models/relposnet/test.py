@@ -4,7 +4,7 @@ import math
 import torch
 from torch.utils.data import DataLoader
 
-from relposnet import RelPosNet
+from my_models import RelPosNet
 from dataset_for_directionnet import DatasetForDirectionNet
 from dnn_utils import fix_seed, image_tensor_cat_and_show
 

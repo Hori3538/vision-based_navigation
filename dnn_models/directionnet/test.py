@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from directionnet import DirectionNet
+from my_models import DirectionNet
 from dataset_for_directionnet import DatasetForDirectionNet
 from dnn_utils import fix_seed, image_tensor_cat_and_show
 

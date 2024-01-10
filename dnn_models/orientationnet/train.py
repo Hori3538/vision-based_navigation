@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 
-from orientationnet import OrientationNet
+from my_models import OrientationNet
 from dataset_for_orientationnet import DatasetForOrientationNet
 from focal_loss import Loss as FocalLoss
 

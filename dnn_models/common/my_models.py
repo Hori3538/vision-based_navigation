@@ -38,11 +38,30 @@ class CommonNet(nn.Module):
 
         return self.classifier(x)
 
+class DirectionNet(CommonNet):
+    def __init__(self) -> None:
+        super(DirectionNet, self).__init__(label_num=5)
+
+class OrientationNet(CommonNet):
+    def __init__(self) -> None:
+        super(OrientationNet, self).__init__(label_num=3)
+
+class RelPosNet(CommonNet):
+    def __init__(self) -> None:
+        super(RelPosNet, self).__init__(label_num=3)
+
 def test():
     tensor = torch.zeros(2, 3, 224, 224)
-    model = CommonNet()
-    output = model(tensor, tensor)
-    print(output.shape)
+    direction_net = DirectionNet()
+    orientation_net = OrientationNet()
+    relpos_net = RelPosNet()
+
+    output = direction_net(tensor, tensor)
+    print(f"direction_net output_shape: {output.shape}")
+    output = orientation_net(tensor, tensor)
+    print(f"orientation_net output_shape: {output.shape}")
+    output = relpos_net(tensor, tensor)
+    print(f"relpos_net output_shape: {output.shape}")
 
 if __name__ == "__main__":
     test()

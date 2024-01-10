@@ -12,7 +12,7 @@ from sensor_msgs.msg import CompressedImage
 from visualization_msgs.msg import Marker
 from std_msgs.msg import String
 
-from directionnet import DirectionNet
+from my_models import DirectionNet
 from .utils import compressed_image_to_tensor, tensor_to_compressed_image, infer
 from .topological_map_io import load_topological_map
 

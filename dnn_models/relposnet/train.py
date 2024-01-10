@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 
-from relposnet import RelPosNet
+from my_models import RelPosNet
 from dataset_for_directionnet import DatasetForDirectionNet
 
 def main():
