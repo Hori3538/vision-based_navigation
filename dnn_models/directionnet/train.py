@@ -6,12 +6,12 @@ import torch
 from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 
 from my_models import DirectionNet
+import dnn_utils
 from dataset_for_directionnet import DatasetForDirectionNet
 from focal_loss import Loss as FocalLoss
 
@@ -53,7 +53,6 @@ def main():
     if args.pretrained_weights:
         model.load_state_dict(torch.load(args.pretrained_weights))
 
-    # train_dataset = DatasetForDirectionNet(args.train_dataset_dirs, use_transform=True)
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(train_dataset)
     valid_dataset = DatasetForDirectionNet(args.valid_dataset_dirs)
@@ -68,13 +67,8 @@ def main():
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
             shuffle=True, drop_last=True, num_workers=args.num_workers)
 
-    train_transform = nn.Sequential(
-            transforms.ColorJitter(
-                brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
-            transforms.RandomGrayscale(0.2),
-            transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
-            transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
-        )
+    train_transform = dnn_utils.transform
+
     direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(train_dataset)
     print(f"direction_label_counts: {direction_label_counts}")
     criterion_for_direction = FocalLoss(fl_gamma=2,

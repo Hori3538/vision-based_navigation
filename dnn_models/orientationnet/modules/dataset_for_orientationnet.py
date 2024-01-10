@@ -1,34 +1,20 @@
-from numpy import where
 from torch.utils.data import Dataset, DataLoader
-from datetime import datetime
 from glob import iglob
 import os
 from typing import List, Tuple
 import torch
-import torch.nn as nn
-from torchvision import transforms
 import random
-import time
 
 from training_data import TrainingData
 
 class DatasetForOrientationNet(Dataset):
-    def __init__(self, dataset_dirs: List[str], use_transform: bool = False) -> None:
+    def __init__(self, dataset_dirs: List[str]) -> None:
         data_path = []
         for dataset_dir in dataset_dirs:
             for data in iglob(os.path.join(dataset_dir, "*")):
                 data_path.append(data)
 
         self._data_path = data_path
-        self._use_transform = use_transform
-        self._transform = nn.Sequential(
-                transforms.ColorJitter(
-                    brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
-                transforms.RandomGrayscale(0.2),
-                transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
-                transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
-            )
-            # ).to(torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
 
     def __len__(self) -> int:
         return len(self._data_path)
@@ -42,8 +28,6 @@ class DatasetForOrientationNet(Dataset):
                     data.orientation_label.clone().detach(),
                     data.relative_pose
                 )
-        if self._use_transform:
-            src, dst = self._transform(src), self._transform(dst)
 
         return src, dst, direction_label, orientation_label, relative_pose
 
@@ -87,7 +71,7 @@ def test() -> None:
     parser.add_argument("--dataset-dirs", type=str, nargs='*')
     args = parser.parse_args()
 
-    dataset = DatasetForOrientationNet(args.dataset_dirs, use_transform=False)
+    dataset = DatasetForOrientationNet(args.dataset_dirs)
     # データ確認用loader
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
