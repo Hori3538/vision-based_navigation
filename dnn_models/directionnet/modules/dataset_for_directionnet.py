@@ -1,5 +1,4 @@
 from torch.utils.data import Dataset, DataLoader
-from datetime import datetime
 from glob import iglob
 import os
 from typing import List, Tuple
@@ -7,7 +6,6 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import random
-import time
 
 from training_data import TrainingData
 

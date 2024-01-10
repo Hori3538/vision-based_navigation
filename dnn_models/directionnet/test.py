@@ -1,28 +1,12 @@
 import argparse
-from datetime import datetime
-import os
-import random
 
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-import cv2
-import numpy as np
 
 from directionnet import DirectionNet
 from dataset_for_directionnet import DatasetForDirectionNet
-
-def fix_seed(seed):
-    # random
-    random.seed(seed)
-    # numpy
-    np.random.seed(seed)
-    # pytorch
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
+from dnn_utils import fix_seed, image_tensor_cat_and_show
 
 def main():
     print("=== test start ==")
@@ -36,8 +20,7 @@ def main():
     # device = "cuda" if torch.cuda.is_available() else "cpu"
     device ="cpu"
 
-    seed = 42
-    fix_seed(seed)
+    fix_seed()
 
     model = DirectionNet().to(device)
     model.load_state_dict(torch.load(args.weight_path))
@@ -86,20 +69,8 @@ def main():
             print(f"drirection_output_prob: {F.softmax(test_output, dim=1)}")
             print()
 
-            image_tensor = torch.cat((src_image[0], dst_image[0]), dim=2).squeeze()
-            image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
-            cv2.imshow("images", image)
-            key = cv2.waitKey(0)
-            if key == ord("q") or key == ord("c"):
-                break
-            if key == ord("r"):
-                image_name = datetime.now().strftime("%Y%m%d_%H%M%S") + ".jpg"
-                image_dir = os.path.join(args.image_dir, image_name)
-                print(f"image_dir: {image_dir}")
-                cv2.imwrite(image_dir, image)
-
-                print("saving image\n")
-            cv2.destroyAllWindows()
+            continue_flag= image_tensor_cat_and_show(src_image[0], dst_image[0], args.image_dir)
+            if(not continue_flag): break
 
 if __name__ == "__main__":
     main()

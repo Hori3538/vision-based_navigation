@@ -5,7 +5,6 @@ import os
 import torch
 from torch import optim
 import torch.nn as nn
-import torch.nn.functional as F
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -13,7 +12,6 @@ from tqdm import tqdm
 
 from relposnet import RelPosNet
 from dataset_for_directionnet import DatasetForDirectionNet
-# from focal_loss import Loss as FocalLoss
 
 def main():
     print("== Training Script ==")
@@ -26,7 +24,6 @@ def main():
     parser.add_argument("-n", "--num-data", type=int, default=50000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
-    # parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=0)
     parser.add_argument("-e", "--num-epochs", type=int, default=70)
