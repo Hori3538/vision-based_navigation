@@ -1,10 +1,10 @@
 import argparse
 from datetime import datetime
 import os
+import time
 
 import torch
 from torch import optim
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -22,22 +22,22 @@ def main():
     parser.add_argument("-s", "--seed", type=int, default=42)
     parser.add_argument("-d", "--train-dataset-dirs", type=str, nargs='*')
     parser.add_argument("-v", "--valid-dataset-dirs", type=str, default="", nargs='*')
-    parser.add_argument("-p", "--pretrained-weights", type=str, default="")
-    parser.add_argument("-n", "--num-data", type=int, default=50000)
+    parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
-    parser.add_argument("-w", "--num-workers", type=int, default=0)
+    parser.add_argument("-w", "--num-workers", type=int, default=8)
     parser.add_argument("-e", "--num-epochs", type=int, default=30)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
+    parser.add_argument("--class-balanced", type=bool, default=True)
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # device = "cpu" 
     torch.backends.cudnn.bencmark = True
-    torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
+    # torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
     dirs_name = args.dirs_name if args.dirs_name else datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = os.path.join(args.log_dir, dirs_name)
@@ -50,11 +50,9 @@ def main():
             f.write(f"{key}, {value}\n")
 
     model = DirectionNet().to(device)
-    if args.pretrained_weights:
-        model.load_state_dict(torch.load(args.pretrained_weights))
 
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(train_dataset)
+    DatasetForDirectionNet.equalize_label_counts(train_dataset, max_gap_times=3)
     valid_dataset = DatasetForDirectionNet(args.valid_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(valid_dataset)
 
@@ -63,23 +61,25 @@ def main():
             generator=torch.Generator().manual_seed(args.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
 
     train_transform = dnn_utils.transform
 
-    direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(train_dataset)
-    print(f"direction_label_counts: {direction_label_counts}")
+    train_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(train_dataset)
+    print(f"train_direction_label_counts: {train_direction_label_counts}")
+    valid_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(valid_dataset)
+    print(f"direction_label_counts: {valid_direction_label_counts}")
     criterion_for_direction = FocalLoss(fl_gamma=2,
-                                        samples_per_class=direction_label_counts.tolist(),
-                                        class_balanced=True, beta=0.99)
-                                        # class_balanced=False, beta=0.99)
+                                        samples_per_class=train_direction_label_counts.tolist(),
+                                        class_balanced=args.class_balanced, beta=0.99)
+
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     step_size_up: int = 8 * len(train_dataset) / args.batch_size
     scheduler = optim.lr_scheduler.CyclicLR(
                 optimizer, base_lr=args.lr_min, max_lr=args.lr_max, step_size_up=step_size_up, mode="triangular2", cycle_momentum=False)
-    label_num: int = len(direction_label_counts)
+    label_num: int = len(train_direction_label_counts)
 
     writer = SummaryWriter(log_dir = log_dir)
     best_loss = float('inf')
@@ -121,8 +121,6 @@ def main():
 
                 onehot_output_direction = F.one_hot(valid_output.max(1).indices,
                                                     num_classes=label_num)
-                # print(f"direction_out_prob: {F.softmax(valid_output[:, :bin_num+1])}")
-                # print(f"direction_labe: {direction_label}")
                 direction_judge_tensor = torch.logical_and(
                         onehot_output_direction == direction_label.to(device),
                         onehot_output_direction == 1)
@@ -131,9 +129,8 @@ def main():
 
                 epoch_valid_direction_loss += float(direction_loss)
 
-            direction_label_counts_valid = DatasetForDirectionNet.count_data_for_each_label(valid_dataset)
-            direction_label_accuracy = direction_label_correct_count / direction_label_counts_valid
-            direction_total_accuracy = direction_label_correct_count.sum() / direction_label_counts_valid.sum()
+            direction_label_accuracy = direction_label_correct_count / valid_direction_label_counts
+            direction_total_accuracy = direction_label_correct_count.sum() / valid_direction_label_counts.sum()
 
             print(f"direction label accuracy {direction_label_accuracy}")
             print(f"direction_total_accuracy: {direction_total_accuracy}")

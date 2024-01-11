@@ -4,6 +4,7 @@ import os
 from typing import List, Tuple
 import torch
 import random
+import time
 
 from training_data import TrainingData
 
@@ -32,11 +33,10 @@ class DatasetForOrientationNet(Dataset):
         return src, dst, direction_label, orientation_label, relative_pose
 
     @staticmethod
-    def equalize_label_counts(dataset) -> None:
+    def equalize_label_counts(dataset, max_gap_times: int=1) -> None:
         orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(dataset); 
         surplus_label_coutns = orientation_label_counts - \
-                orientation_label_counts[orientation_label_counts != 0].min()
-        print(f"surplus_label_coutns: {surplus_label_coutns}")
+                orientation_label_counts[orientation_label_counts != 0].min()*max_gap_times
 
         while torch.any(surplus_label_coutns > 0):
             data_idx = random.randint(0, len(dataset)-1) 
@@ -48,16 +48,26 @@ class DatasetForOrientationNet(Dataset):
     
     @staticmethod
     def count_data_for_each_label(dataset) -> torch.Tensor:
+        start = time.time()
         label_num: int = len(dataset[0][3])
 
-        dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False)
+        dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False,
+                                # num_workers=os.cpu_count(), pin_memory=True)
+                                num_workers=8, pin_memory=True)
         orientation_label_counts: torch.Tensor = torch.tensor([0] * label_num, dtype=torch.float)
 
+        load_start = time.time()
         for batch in dataloader:
+            load_end = time.time()
+            print(f"load_time: {load_end-load_start:.4f}")
             data = TrainingData(*batch)
             orientation_label = data.orientation_label
 
             orientation_label_counts += torch.sum(orientation_label, 0)
+            load_start = time.time()
+
+        end = time.time()
+        print(f"counting data time: {end-start}")
 
         return orientation_label_counts
 
@@ -76,10 +86,6 @@ def test() -> None:
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
     # DatasetForDirectionNet.equalize_label_counts(dataset)
-    data_len: int = dataset.__len__()
-    print(f"data len: {data_len}")
-    orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(dataset)
-    print(f"orientation_label_counts: {orientation_label_counts}")
 
     DatasetForOrientationNet.equalize_label_counts(dataset)
     data_len = dataset.__len__()

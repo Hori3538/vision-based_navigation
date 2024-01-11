@@ -17,8 +17,8 @@ def main():
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device ="cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device ="cpu"
 
     fix_seed()
 

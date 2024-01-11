@@ -1,5 +1,6 @@
 import argparse
 from datetime import datetime
+from math import pi
 import os
 
 import torch
@@ -20,16 +21,16 @@ def main():
     parser.add_argument("-s", "--seed", type=int, default=42)
     parser.add_argument("-d", "--train-dataset-dirs", type=str, nargs='*')
     parser.add_argument("-v", "--valid-dataset-dirs", type=str, default="", nargs='*')
-    parser.add_argument("-p", "--pretrained-weights", type=str, default="")
-    parser.add_argument("-n", "--num-data", type=int, default=50000)
+    parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
-    parser.add_argument("-w", "--num-workers", type=int, default=0)
+    parser.add_argument("-w", "--num-workers", type=int, default=os.cpu_count())
     parser.add_argument("-e", "--num-epochs", type=int, default=70)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
+    parser.add_argument("--class-balanced", type=bool, default=True)
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,8 +49,6 @@ def main():
             f.write(f"{key}, {value}\n")
 
     model = RelPosNet().to(device)
-    if args.pretrained_weights:
-        model.load_state_dict(torch.load(args.pretrained_weights))
 
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(train_dataset)
@@ -62,18 +61,12 @@ def main():
             generator=torch.Generator().manual_seed(args.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
 
     train_transform = dnn_utils.transform
-    # train_transform = nn.Sequential(
-    #         transforms.ColorJitter(
-    #             brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
-    #         transforms.RandomGrayscale(0.2),
-    #         transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
-    #         transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
-    #     )
+
     criterion_for_direction = nn.MSELoss()
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     step_size_up: int = 8 * len(train_dataset) / args.batch_size

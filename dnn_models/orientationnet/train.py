@@ -4,7 +4,6 @@ import os
 
 import torch
 from torch import optim
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -22,23 +21,22 @@ def main():
     parser.add_argument("-s", "--seed", type=int, default=42)
     parser.add_argument("-d", "--train-dataset-dirs", type=str, nargs='*')
     parser.add_argument("-v", "--valid-dataset-dirs", type=str, default="", nargs='*')
-    parser.add_argument("-p", "--pretrained-weights", type=str, default="")
-    parser.add_argument("-n", "--num-data", type=int, default=50000)
+    parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
-    # parser.add_argument("-t", "--train-ratio", type=int, default=8)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
-    parser.add_argument("-w", "--num-workers", type=int, default=0)
+    parser.add_argument("-w", "--num-workers", type=int, default=8)
     parser.add_argument("-e", "--num-epochs", type=int, default=30)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
+    parser.add_argument("--class-balanced", type=bool, default=True)
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # device = "cpu" 
     torch.backends.cudnn.bencmark = True
-    torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
+    # torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
     dirs_name = args.dirs_name if args.dirs_name else datetime.now().strftime("%Y%m%d_%H%M%S")
     log_dir = os.path.join(args.log_dir, dirs_name)
@@ -51,11 +49,9 @@ def main():
             f.write(f"{key}, {value}\n")
 
     model = OrientationNet().to(device)
-    if args.pretrained_weights:
-        model.load_state_dict(torch.load(args.pretrained_weights))
 
     train_dataset = DatasetForOrientationNet(args.train_dataset_dirs)
-    DatasetForOrientationNet.equalize_label_counts(train_dataset)
+    DatasetForOrientationNet.equalize_label_counts(train_dataset, max_gap_times=3)
     valid_dataset = DatasetForOrientationNet(args.valid_dataset_dirs)
     DatasetForOrientationNet.equalize_label_counts(valid_dataset)
 
@@ -64,22 +60,24 @@ def main():
             generator=torch.Generator().manual_seed(args.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size,
-            shuffle=True, drop_last=True, num_workers=args.num_workers)
+            shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
 
     train_transform = dnn_utils.transform
 
-    orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(train_dataset)
-    print(f"orientation_label_counts: {orientation_label_counts}")
+    train_orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(train_dataset)
+    print(f"train_orientation_label_counts: {train_orientation_label_counts}")
+    valid_orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(valid_dataset)
+    print(f"valid_orientation_label_counts: {valid_orientation_label_counts}")
     criterion_for_orientation = FocalLoss(fl_gamma=2,
-                                        samples_per_class=orientation_label_counts.tolist(),
-                                        class_balanced=True, beta=0.99)
+                                        samples_per_class=train_orientation_label_counts.tolist(),
+                                        class_balanced=args.class_balanced, beta=0.99)
     optimizer = optim.RAdam(model.parameters(), lr=args.lr_max)
     step_size_up: int = 8 * len(train_dataset) / args.batch_size
     scheduler = optim.lr_scheduler.CyclicLR(
                 optimizer, base_lr=args.lr_min, max_lr=args.lr_max, step_size_up=step_size_up, mode="triangular2", cycle_momentum=False)
-    label_num: int = len(orientation_label_counts)
+    label_num: int = len(train_orientation_label_counts)
 
     writer = SummaryWriter(log_dir = log_dir)
     best_loss = float('inf')
@@ -130,9 +128,8 @@ def main():
 
                 epoch_valid_orientation_loss += float(orientation_loss)
 
-            orientation_label_counts_valid = DatasetForOrientationNet.count_data_for_each_label(valid_dataset)
-            orientation_label_accuracy = orientation_label_correct_count / orientation_label_counts_valid
-            orientation_total_accuracy = orientation_label_correct_count.sum() / orientation_label_counts_valid.sum()
+            orientation_label_accuracy = orientation_label_correct_count / valid_orientation_label_counts
+            orientation_total_accuracy = orientation_label_correct_count.sum() / valid_orientation_label_counts.sum()
 
             print(f"orientation label accuracy {orientation_label_accuracy}")
             print(f"orientation_total_accuracy: {orientation_total_accuracy}")
