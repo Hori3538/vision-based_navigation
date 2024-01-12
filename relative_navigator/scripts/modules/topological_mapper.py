@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast, Optional, Union
+from typing import cast, Optional, Union, List
 import os
 from glob import iglob
 
@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose
 
 from transformutils import get_array_2d_from_msg
 
-from my_models import DirectionNet, OrientationNet
+from my_models import DirectionNet
 from .topological_map_io import save_topological_map, load_topological_map, save_nodes_as_img
 from .utils import compressed_image_to_tensor, infer, msg_to_pose
 
@@ -121,10 +121,13 @@ class TopologicalMapper:
 
                 same_conf: float = self._pred_same_conf(src_img, tgt_img)
                 reverse_same_conf: float = self._pred_same_conf(tgt_img, src_img)
-                # if same_conf == None or same_conf < self._param.connect_conf_th: continue
                 if same_conf < self._param.connect_conf_th or reverse_same_conf < self._param.connect_conf_th: continue
+                if graph.has_edge(tgt_node, src_node):
+                    if graph.edges[tgt_node, src_node]['required'] == True: continue
+                    if graph.edges[tgt_node, src_node]['weight'] < 1-same_conf: continue
 
                 graph.add_edge(src_node, tgt_node, weight=1-same_conf, required=False)
+
         rospy.loginfo(f"{len(list(self._graph.edges))} edges is added")
 
     def _add_minimum_required_edges(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
@@ -151,40 +154,42 @@ class TopologicalMapper:
                 if graph.edges[src_node, tgt_node]['required'] == True: continue
 
                 graph.remove_edge(src_node, tgt_node)
+                rospy.loginfo(f"edge between {src_node} and {tgt_node} is removed")
                 surplus_edge_count-=1
                 pruned_count+=1
         rospy.loginfo(f"{pruned_count} edges are pruned")
 
     def _delete_node_without_cycle(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
         rospy.loginfo("deleting node without cycle")
-        deleted_nodes_count: int = 0
+        deletion_target_nodes: List[str] = []
         for node in graph.nodes:
             try:
                 nx.find_cycle(graph, source=node, orientation="original")
             except:
-                graph.remove_node(node)
-                deleted_nodes_count += 1
-        rospy.loginfo(f"{deleted_nodes_count} nodes are deleted.")
+                deletion_target_nodes.append(node)
+
+        rospy.loginfo(f"deletion targets: {deletion_target_nodes}")
+        graph.remove_nodes_from(deletion_target_nodes)
+        rospy.loginfo(f"{len(deletion_target_nodes)} nodes are deleted.")
 
     def process(self) -> None:
 
         # add nodes process
-        # for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*"))):
-        #     bag: Bag = Bag(bagfile_path)
-        #     self._add_nodes_from_bag(self._graph, bag, i)
+        for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*.bag"))):
+            bag: Bag = Bag(bagfile_path)
+            self._add_nodes_from_bag(self._graph, bag, i)
 
-        self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name+".pkl"))
+        # self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name+".pkl"))
         # add edges process
         # self._graph.remove_edges_from(list(self._graph.edges))
-        # self._add_minimum_required_edges(self._graph)
-        # self._add_edges2(self._graph)
-        # self._delete_node_without_cycle(self._graph)
-        # self._edge_pruning(self._graph)
-        # save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
+        self._add_minimum_required_edges(self._graph)
+        self._add_edges2(self._graph)
+        self._edge_pruning(self._graph)
+        self._delete_node_without_cycle(self._graph)
+        save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
 
         os.makedirs(os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"), exist_ok=True)
-        # save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))
+        save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))
         print(f"edges: {dict(self._graph.edges)}")
-        
         rospy.loginfo("Process fnished")
         rosnode.kill_nodes("topological_mapper")

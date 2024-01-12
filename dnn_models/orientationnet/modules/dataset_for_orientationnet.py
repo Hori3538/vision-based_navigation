@@ -5,6 +5,7 @@ from typing import List, Tuple
 import torch
 import random
 import time
+import copy
 
 from training_data import TrainingData
 
@@ -15,6 +16,7 @@ class DatasetForOrientationNet(Dataset):
             for data in iglob(os.path.join(dataset_dir, "*")):
                 data_path.append(data)
 
+        random.shuffle(data_path)
         self._data_path = data_path
 
     def __len__(self) -> int:
@@ -33,18 +35,25 @@ class DatasetForOrientationNet(Dataset):
         return src, dst, direction_label, orientation_label, relative_pose
 
     @staticmethod
-    def equalize_label_counts(dataset, max_gap_times: int=1) -> None:
-        orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(dataset); 
-        surplus_label_coutns = orientation_label_counts - \
-                orientation_label_counts[orientation_label_counts != 0].min()*max_gap_times
+    # def equalize_label_counts(dataset, max_gap_times: int=1) -> None:
+    def equalize_label_counts(dataset, max_gap_times: int=1) -> torch.Tensor:
+        label_counts = DatasetForOrientationNet.count_data_for_each_label(dataset); 
+        surplus_label_coutns = label_counts - label_counts[label_counts!=0].min() * max_gap_times
 
+        start = time.time()
+        data_idx = 0
         while torch.any(surplus_label_coutns > 0):
-            data_idx = random.randint(0, len(dataset)-1) 
-            _, _, _, orientation_labels, _ = dataset[data_idx] 
-            orientation_label = torch.where(orientation_labels == 1)
-            if surplus_label_coutns[orientation_label] > 0:
+            # data_idx = random.randint(0, len(dataset)-1) 
+            _, _, _, labels, _ = dataset[data_idx] 
+            label = torch.where(labels == 1)
+            if surplus_label_coutns[label] > 0:
                 del dataset._data_path[data_idx]
-                surplus_label_coutns[orientation_label] -= 1
+                surplus_label_coutns[label] -= 1
+                label_counts[label] -= 1
+            else: data_idx += 1
+        end = time.time()
+        print(f"equalize data time: {end-start}")
+        return label_counts
     
     @staticmethod
     def count_data_for_each_label(dataset) -> torch.Tensor:
@@ -59,7 +68,7 @@ class DatasetForOrientationNet(Dataset):
         load_start = time.time()
         for batch in dataloader:
             load_end = time.time()
-            print(f"load_time: {load_end-load_start:.4f}")
+            # print(f"load_time: {load_end-load_start:.4f}")
             data = TrainingData(*batch)
             orientation_label = data.orientation_label
 
@@ -85,12 +94,9 @@ def test() -> None:
     # データ確認用loader
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True)
 
-    # DatasetForDirectionNet.equalize_label_counts(dataset)
-
-    DatasetForOrientationNet.equalize_label_counts(dataset)
+    orientation_label_counts = DatasetForOrientationNet.equalize_label_counts(dataset)
     data_len = dataset.__len__()
     print(f"data len: {data_len}")
-    orientation_label_counts = DatasetForOrientationNet.count_data_for_each_label(dataset)
     print(f"orientation_label_counts: {orientation_label_counts}")
 
     print()

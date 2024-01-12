@@ -17,8 +17,8 @@ def main():
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device ="cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device ="cpu"
 
     fix_seed()
 
@@ -27,7 +27,7 @@ def main():
     model.eval()
 
     test_dataset = DatasetForDirectionNet(args.dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(test_dataset)
+    DatasetForDirectionNet.equalize_label_counts(test_dataset, max_gap_times=3)
     test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
     
     loss_func = torch.nn.MSELoss()

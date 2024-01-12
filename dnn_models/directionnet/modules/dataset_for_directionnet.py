@@ -5,6 +5,7 @@ from typing import List, Tuple
 import torch
 import random
 import time
+import copy
 
 from training_data import TrainingData
 
@@ -15,6 +16,7 @@ class DatasetForDirectionNet(Dataset):
             for data in iglob(os.path.join(dataset_dir, "*")):
                 data_path.append(data)
 
+        random.shuffle(data_path)
         self._data_path = data_path
 
     def __len__(self) -> int:
@@ -33,25 +35,31 @@ class DatasetForDirectionNet(Dataset):
         return src, dst, direction_label, orientation_label, relative_pose
 
     @staticmethod
-    def equalize_label_counts(dataset, max_gap_times: int=1) -> None:
+    # def equalize_label_counts(dataset, max_gap_times: int=1) -> None:
+    def equalize_label_counts(dataset, max_gap_times: int=1) -> torch.Tensor:
         
-        start = time.time()
-        direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset); 
-        surplus_label_coutns = direction_label_counts - \
-                direction_label_counts[direction_label_counts != 0].min()*max_gap_times
+        label_counts = DatasetForDirectionNet.count_data_for_each_label(dataset); 
+        surplus_label_coutns = label_counts - label_counts[label_counts!=0].min() * max_gap_times
 
+        start = time.time()
+        data_idx = 0
         while torch.any(surplus_label_coutns > 0):
-            data_idx = random.randint(0, len(dataset)-1) 
-            _, _, direction_labels, _, _ = dataset[data_idx] 
-            direction_label = torch.where(direction_labels == 1)
-            if surplus_label_coutns[direction_label] > 0:
+            # data_idx = random.randint(0, len(dataset)-1) 
+            _, _, labels, _, _ = dataset[data_idx] 
+            label = torch.where(labels == 1)
+            if surplus_label_coutns[label] > 0:
                 del dataset._data_path[data_idx]
-                surplus_label_coutns[direction_label] -= 1
+                surplus_label_coutns[label] -= 1
+                label_counts[label] -= 1
+            else: data_idx += 1
         end = time.time()
-        print(f"counting data time: {end-start}")
+        print(f"equalize data time: {end-start}")
+
+        return label_counts
     
     @staticmethod
     def count_data_for_each_label(dataset) -> torch.Tensor:
+        start = time.time()
         label_num: int = len(dataset[0][2])
 
         dataloader = DataLoader(dataset, batch_size=64, shuffle=False, drop_last=False,
@@ -63,6 +71,8 @@ class DatasetForDirectionNet(Dataset):
             direction_label = data.direction_label
 
             direction_label_counts += torch.sum(direction_label, 0)
+        end = time.time()
+        print(f"counting data time: {end-start}")
 
         return direction_label_counts
 

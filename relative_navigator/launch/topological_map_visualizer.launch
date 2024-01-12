@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/center_perimeter/center_perimeter_test.pkl"/> -->
-    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_test.pkl"/> -->
-    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_multi_test.pkl"/> -->
-    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/test/dkan_perimeter_test2.pkl"/> -->
-    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_single_full.pkl"/>
+    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_single_full.pkl"/> -->
+    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_single_fullpower.pkl"/>
 
     <node pkg="relative_navigator" type="topological_map_visualizer_node.py" name="topological_map_visualizer" output="screen">
         <rosparam subst_value="True">

@@ -99,7 +99,8 @@ class RelPoseLabelEstimator:
         while not rospy.is_shutdown():
             if self._observed_image is None or self._reference_image is None: continue
             abst_rel_pose_msg: RelPoseLabel = self._predict_rel_pose_label()
-            self._observed_image = None
             self._rel_pose_label_pub.publish(abst_rel_pose_msg)
+            self._observed_image = None
+            self._reference_image = None
 
             rate.sleep()

@@ -27,10 +27,11 @@ def main():
     model.eval()
 
     test_dataset = DatasetForDirectionNet(args.dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(test_dataset)
-    test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False)
+    direction_label_counts = DatasetForDirectionNet.equalize_label_counts(test_dataset)
+    test_loader = DataLoader(test_dataset, batch_size=200, shuffle=True, drop_last=False,
+                             num_workers=8, pin_memory=True)
 
-    direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(test_dataset)
+    # direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(test_dataset)
     print(f"direction_label_counts: {direction_label_counts}")
 
     data_num = test_dataset.__len__()

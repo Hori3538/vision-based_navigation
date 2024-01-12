@@ -74,6 +74,8 @@ class GraphLocalizer:
                 CompressedImage, queue_size=1, tcp_nodelay=True)
         self._goal_img_pub = rospy.Publisher("~goal_img/image_raw/compressed",
                 CompressedImage, queue_size=1, tcp_nodelay=True)
+        self._goal_node_img_pub = rospy.Publisher("~goal_node_img/image_raw/compressed",
+                CompressedImage, queue_size=1, tcp_nodelay=True)
 
 
         self._nearest_node_marker_pub = rospy.Publisher("~nearest_node_marker", Marker, queue_size=1, tcp_nodelay=True)
@@ -216,9 +218,9 @@ class GraphLocalizer:
         rospy.loginfo("localizing goal node...")
         goal_node:str = self._predict_goal_node(self._goal_image)
         rospy.loginfo("goal node is localized")
+
         goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
-        # print(f"normal: {infer(self._direction_net, self._device, self._graph.nodes[goal_node]['img'], self._goal_image)}")
-        # print(f"reverwe: {infer(self._direction_net, self._device, self._goal_image,  self._graph.nodes[goal_node]['img'])}")
+        goal_node_img: torch.Tensor = self._graph.nodes[goal_node]['img']
 
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
@@ -226,6 +228,7 @@ class GraphLocalizer:
             self._publish_img(self._goal_image, self._goal_img_pub)
             self._goal_node_id_pub.publish(goal_node)
             self._goal_node_marker_pub.publish(goal_node_marker)
+            self._publish_img(goal_node_img, self._goal_node_img_pub)
 
             if self._observed_image is None: continue
 

@@ -127,6 +127,8 @@ class GraphPathPlanner:
                 continue
 
             shortest_path: Optional[List[str]] = self._calc_shortest_path(self._nearest_node_id, self._goal_node_id)
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_100", "1_150")
+            # print(f"shortest_path: {shortest_path}")
             if shortest_path is None:
                 self._nearest_node_id = None
                 continue
