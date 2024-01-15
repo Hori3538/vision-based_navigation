@@ -12,15 +12,19 @@ graph_localizer:
   batch_size: 32
   # global_localize_conf_th: 0.4
   global_localize_conf_th: 0.00
-  # candidate_neibors_num: 2
-  candidate_neibors_num: 4
+  candidate_neibors_num: 3
+  # candidate_neibors_num: 10
   global_candidate_neibors_num: 5
+  reserving_node_num: 3
 
 graph_path_planner:
   hz: 5
-  first_waypoint_dist: 2
+  # first_waypoint_dist: 2
+  waypoint_num: 5
 
 rel_pose_label_estimator:
+  observed_image_width: 1280
+  observed_image_height: 720
   # hz: 10
   hz: 5
 

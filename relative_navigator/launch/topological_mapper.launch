@@ -6,7 +6,7 @@
     <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map"/>
     <!-- <arg name="bagfiles_dir" default="/home/amsl/bag/abstrelposnet/center_perimeter/for_map"/> -->
     <arg name="map_save_dir" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter"/>
-    <arg name="map_name" default="dkan_perimeter_single_fullpower"/>
+    <arg name="map_name" default="dkan_4th_perimeter_4th_fullpower"/>
     <!-- <arg name="map_name" default="center_perimeter_test"/> -->
 
 
@@ -25,8 +25,8 @@
 
             divide_conf_th: 0.7
             connect_conf_th: 0.5
-            <!-- edge_num_th: 10 -->
-            edge_num_th: 5
+            edge_num_th: 10
+            <!-- edge_num_th: 5 -->
         </rosparam>
     </node>
 </launch>

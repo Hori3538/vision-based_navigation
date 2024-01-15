@@ -5,7 +5,8 @@
     <!-- <arg name="direction_net_weight_path" default="/home/amsl/hori/vision_nav/weights/direction/full/best_acc.pt"/> -->
     <!-- <arg name="orientation_net_weight_path" default="/home/amsl/hori/vision_nav/weights/orientation/full/best_acc.pt"/> -->
 
-    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_single_fullpower.pkl"/>
+    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_double_fullpower.pkl"/>
+    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_180.jpg"/> -->
     <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_197.jpg"/>
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_46.jpg"/> -->
@@ -44,7 +45,7 @@
             orientation_net_weight_path: $(arg orientation_net_weight_path)
             observed_image_topic_name: $(arg observed_image_topic_name)
 
-            reference_image_topic_name: "/graph_path_planner/first_waypoint_img/image_raw/compressed"
+            <!-- reference_image_topic_name: "/graph_path_planner/first_waypoint_img/image_raw/compressed" -->
         </rosparam>
     </node>
 
@@ -77,9 +78,9 @@
       <remap from="in" to="/graph_localizer/goal_node_img/image_raw/" />
       <remap from="out" to="/graph_localizer/goal_node_img/image_raw/" />
   </node>
-  <node name="first_waypoint_image_republish" pkg="image_transport" type="republish" args="compressed raw">
-      <remap from="in" to="/graph_path_planner/first_waypoint_img/image_raw/" />
-      <remap from="out" to="/graph_path_planner/first_waypoint_img/image_raw/" />
+  <node name="waypoint_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/rel_pose_label_estimator/waypoint_img/image_raw/" />
+      <remap from="out" to="/rel_pose_label_estimator/waypoint_img/image_raw/" />
   </node>
 
 </launch>

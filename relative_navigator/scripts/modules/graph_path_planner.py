@@ -10,9 +10,11 @@ from visualization_msgs.msg import Marker
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import CompressedImage
+from relative_navigator_msgs.msg import NodeInfo, NodeInfoArray
 
 from .topological_map_io import load_topological_map
 from .utils import tensor_to_compressed_image
+from transformutils import get_msg_from_array_2d
 
 @dataclass(frozen=True)
 class Param:
@@ -22,7 +24,8 @@ class Param:
     observed_image_height: int
 
     hz: float
-    first_waypoint_dist: int
+    # first_waypoint_dist: int
+    waypoint_num: int
 
     map_path: str
 
@@ -37,7 +40,8 @@ class GraphPathPlanner:
                 cast(int, rospy.get_param("/common/observed_image_height")),
 
                 cast(float, rospy.get_param("~hz")),
-                cast(int, rospy.get_param("~first_waypoint_dist")),
+                # cast(int, rospy.get_param("~first_waypoint_dist")),
+                cast(int, rospy.get_param("~waypoint_num")),
 
                 cast(str, rospy.get_param("~map_path")),
             )
@@ -50,9 +54,10 @@ class GraphPathPlanner:
         self._nearest_node_id_sub: rospy.Subscriber = rospy.Subscriber("/graph_localizer/nearest_node_id",
                 String, self._nearest_node_callback, queue_size=1)
 
-        self._first_waypoint_img_pub = rospy.Publisher("~first_waypoint_img/image_raw/compressed",
-                CompressedImage, queue_size=1, tcp_nodelay=True)
-        self._first_waypoint_id_pub = rospy.Publisher("~first_waypoint_id", String, queue_size=1, tcp_nodelay=True)
+        # self._first_waypoint_img_pub = rospy.Publisher("~first_waypoint_img/image_raw/compressed",
+                # CompressedImage, queue_size=1, tcp_nodelay=True)
+        # self._first_waypoint_id_pub = rospy.Publisher("~first_waypoint_id", String, queue_size=1, tcp_nodelay=True)
+        self._waypoints_pub = rospy.Publisher("~waypoints", NodeInfoArray, queue_size=1, tcp_nodelay=True)
         self._shortest_path_pub = rospy.Publisher("~shortest_path", Marker, queue_size=1, tcp_nodelay=True)
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
@@ -117,6 +122,30 @@ class GraphPathPlanner:
         marker.id = 0
         self._shortest_path_pub.publish(marker)
 
+    def _create_node_info_msg(self, node_name: str) -> NodeInfo:
+        node_msg: NodeInfo = NodeInfo()
+        node_msg.node_name = node_name
+
+        node_img_tensor: torch.Tensor = self._graph.nodes[node_name]['img']
+        node_img_msg: CompressedImage = tensor_to_compressed_image(
+                node_img_tensor,(self._param.image_width, self._param.image_height))
+        node_msg.image = node_img_msg
+
+        node_msg.pose = get_msg_from_array_2d(self._graph.nodes[node_name]['pose'])
+        
+        return node_msg
+
+    def _create_node_info_array_msg(self, node_names: List[str]) -> NodeInfoArray:
+        node_array_msg: NodeInfoArray = NodeInfoArray()
+        node_array_msg.header.frame_id = "map"
+        node_array_msg.header.stamp = rospy.Time.now()
+
+        for node_name in node_names:
+            node_msg = self._create_node_info_msg(node_name)
+            node_array_msg.node_infos.append(node_msg)
+
+        return node_array_msg
+
     def process(self) -> None:
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
@@ -136,16 +165,19 @@ class GraphPathPlanner:
             shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)
             self._visualize_path(shortest_path_marker)
 
-            first_waypoint_dist: int = min(len(shortest_path)-1, self._param.first_waypoint_dist)
-            first_waypoint_id: str = shortest_path[first_waypoint_dist]
-            first_waypoint_img_tensor: torch.Tensor = self._graph.nodes[first_waypoint_id]['img']
-            first_waypoint_img_msg: CompressedImage = tensor_to_compressed_image(
-                    first_waypoint_img_tensor,
-                    (self._param.observed_image_width, self._param.observed_image_height)
-                    )
+            # first_waypoint_dist: int = min(len(shortest_path)-1, self._param.first_waypoint_dist)
+            waypoint_num: int = min(len(shortest_path), self._param.waypoint_num)
+            node_array_msg: NodeInfoArray = self._create_node_info_array_msg(shortest_path[:waypoint_num])
+            self._waypoints_pub.publish(node_array_msg)
+            # first_waypoint_id: str = shortest_path[first_waypoint_dist]
+            # first_waypoint_img_tensor: torch.Tensor = self._graph.nodes[first_waypoint_id]['img']
+            # first_waypoint_img_msg: CompressedImage = tensor_to_compressed_image(
+            #         first_waypoint_img_tensor,
+            #         (self._param.observed_image_width, self._param.observed_image_height)
+            #         )
 
-            self._first_waypoint_id_pub.publish(first_waypoint_id)
-            self._first_waypoint_img_pub.publish(first_waypoint_img_msg)
+            # self._first_waypoint_id_pub.publish(first_waypoint_id)
+            # self._first_waypoint_img_pub.publish(first_waypoint_img_msg)
 
             self._nearest_node_id = None
 

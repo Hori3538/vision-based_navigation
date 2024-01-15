@@ -112,7 +112,7 @@ class TopologicalMapper:
 
         return float(direction_probs[3])
 
-    def _add_edges2(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
+    def _add_edges(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
 
         rospy.loginfo(f"start adding normal edge")
         for src_node, src_img in dict(graph.nodes.data('img')).items():
@@ -183,13 +183,13 @@ class TopologicalMapper:
         # add edges process
         # self._graph.remove_edges_from(list(self._graph.edges))
         self._add_minimum_required_edges(self._graph)
-        self._add_edges2(self._graph)
+        self._add_edges(self._graph)
         self._edge_pruning(self._graph)
         self._delete_node_without_cycle(self._graph)
         save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
 
         os.makedirs(os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"), exist_ok=True)
         save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))
-        print(f"edges: {dict(self._graph.edges)}")
+        # print(f"edges: {dict(self._graph.edges)}")
         rospy.loginfo("Process fnished")
         rosnode.kill_nodes("topological_mapper")

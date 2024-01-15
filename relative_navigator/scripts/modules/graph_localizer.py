@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from dataclasses import dataclass
+import copy
 import torch
 from torchvision.io import read_image
 import torchvision.transforms.functional as F
@@ -28,6 +29,7 @@ class Param:
     global_localize_conf_th: float
     candidate_neibors_num: int
     global_candidate_neibors_num: int
+    reserving_node_num: int
 
     direction_net_weight_path: str
     orientation_net_weight_path: str
@@ -50,6 +52,7 @@ class GraphLocalizer:
                 cast(float, rospy.get_param("~global_localize_conf_th")),
                 cast(int, rospy.get_param("~candidate_neibors_num")),
                 cast(int, rospy.get_param("~global_candidate_neibors_num")),
+                cast(int, rospy.get_param("~reserving_node_num")),
 
                 cast(str, rospy.get_param("~direction_net_weight_path")),
                 cast(str, rospy.get_param("~orientation_net_weight_path")),
@@ -84,14 +87,12 @@ class GraphLocalizer:
         self._nearest_node_id_pub = rospy.Publisher("~nearest_node_id", String, queue_size=1, tcp_nodelay=True)
         self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=1, tcp_nodelay=True)
 
-        # self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
-        self._before_node: Optional[str] = None
+        self._before_nodes: Optional[List[str]] = None
 
         goal_img: torch.Tensor = read_image(path=self._param.goal_img_path)[[2,1,0],:,:].unsqueeze(0)/255
         self._goal_image: torch.Tensor = F.resize(img=goal_img,
                 size=[self._param.image_height, self._param.image_width])
-        # self._goal_image: torch.Tensor = self._graph.nodes["0_180"]['img']
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = compressed_image_to_tensor(msg,
@@ -102,46 +103,60 @@ class GraphLocalizer:
 
         return img_tensor
 
-    def _localize_node(self, tgt_img: torch.Tensor, nodes_pool: List[str]) -> Tuple[str, float]:
+    def _localize_node(self, tgt_img: torch.Tensor, nodes_pool: List[str]) -> Tuple[List[str], List[float]]:
 
-        tgt_img = tgt_img.squeeze()
         all_imgs_pool: torch.Tensor = self._create_img_tensor_from_nodes(nodes_pool)
-        all_same_confs: List[float] = []
+        all_same_confs = self._pred_same_confs(tgt_img, all_imgs_pool)
 
-        for partial_imgs_pool in torch.split(all_imgs_pool, self._param.batch_size, dim=0):
-            tgt_imgs: torch.Tensor = tgt_img.repeat(partial_imgs_pool.shape[0], 1, 1, 1)
-            output_probs: torch.Tensor = infer(self._direction_net, self._device,
-                                               tgt_imgs, partial_imgs_pool)
-            reverse_output_probs: torch.Tensor = infer(self._direction_net, self._device,
-                                               partial_imgs_pool, tgt_imgs)
-            # partial_same_confs: List[float] = (output_probs[:, 3]).tolist()
-            partial_same_confs: List[float] = ((output_probs[:, 3] + reverse_output_probs[:, 3])/2).tolist()
-            all_same_confs += partial_same_confs
+        all_same_confs_tensor = torch.tensor(all_same_confs)
+        max_confs, max_indices  = torch.topk(all_same_confs_tensor, self._param.reserving_node_num)
+        # print(f"max n nodes: {[nodes_pool[i] for i in max_indices]}")
+        # print(f"max n nodes conf: {max_confs}")
 
-        max_conf: float = max(all_same_confs)
-        max_conf_idx = all_same_confs.index(max_conf)
 
-        return nodes_pool[max_conf_idx], max_conf
+        return [nodes_pool[i] for i in max_indices], max_confs
 
-    def _predict_nearest_node(self, observed_img: torch.Tensor) -> str:
+    def _localize_node2(self, tgt_img: torch.Tensor, nodes_pool: List[str]) -> Tuple[List[str], List[float]]:
+
+        if(len(nodes_pool) != self._graph.number_of_nodes()):
+            nodes_pool_including_neighbor: List[str] = self._get_neighbors(nodes_pool, 1)
+        else: 
+            nodes_pool_including_neighbor: List[str] = nodes_pool
+
+        all_imgs_pool: torch.Tensor = self._create_img_tensor_from_nodes(nodes_pool_including_neighbor)
+        all_same_confs = self._pred_same_confs(tgt_img, all_imgs_pool)
+        self._register_conf_to_nodes(nodes_pool_including_neighbor, all_same_confs)
+
+        avg_same_confs = self._calc_avg_confs_of_neighbors(nodes_pool)
+        avg_same_confs_tensor = torch.tensor(avg_same_confs)
+
+        max_confs, max_indices  = torch.topk(avg_same_confs_tensor, 5)
+        print(f"max 5 nodes avg: {[nodes_pool[i] for i in max_indices]}")
+        print(f"max 5 nodes avgconf: {max_confs}")
+
+        return [nodes_pool[i] for i in max_indices], max_confs
+
+    def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> List[str]:
         nodes_pool: List[str]
-        if self._before_node == None:
+        if self._before_nodes == None:
             nodes_pool = list(self._graph.nodes)
             rospy.loginfo("first global localizing...")
         else:
-            nodes_pool = self._get_neibors(self._before_node, self._param.candidate_neibors_num)
+            nodes_pool = self._get_neighbors(self._before_nodes, self._param.candidate_neibors_num)
 
-        nearest_node, conf = self._localize_node(observed_img, nodes_pool)
-        if  conf < self._param.global_localize_conf_th:
-            rospy.loginfo("global localizing...")
-            nodes_pool = self._get_neibors(self._before_node, self._param.global_candidate_neibors_num)
-            nearest_node, _ = self._localize_node(observed_img, nodes_pool)
+        nearest_nodes, confs = self._localize_node(observed_img, nodes_pool)
+        # nearest_nodes, confs = self._localize_node2(observed_img, nodes_pool)
+        if  confs[0] < self._param.global_localize_conf_th:
+            rospy.loginfo("wider localizing...")
+            nodes_pool = self._get_neighbors(self._before_nodes, self._param.global_candidate_neibors_num)
+            nearest_nodes, _ = self._localize_node(observed_img, nodes_pool)
+            # nearest_nodes, _ = self._localize_node2(observed_img, nodes_pool)
 
-        # rospy.loginfo(f"conf: {conf}")
-        return nearest_node
+        # rospy.loginfo(f"conf: {confs[0]}")
+        return nearest_nodes
 
-    def _get_neibors(self, node: str, search_depth: int) -> List[str]:
-        nodes_pool = [node]
+    def _get_neighbors(self, node: List[str], search_depth: int) -> List[str]:
+        nodes_pool = copy.deepcopy(node)
         for _ in range(search_depth):
             nodes_pool_tmp: List[str] = []
             for node in nodes_pool: 
@@ -153,15 +168,47 @@ class GraphLocalizer:
 
         return nodes_pool
 
+    def _register_conf_to_nodes(self, nodes: List[str], confs: List[float]) -> None:
+        for node, conf in zip(nodes, confs):
+            self._graph.nodes[node]["conf"] = conf
+
+    def _calc_avg_confs_of_neighbors(self, nodes: List[str]) -> List[float]:
+        avg_confs = []
+        for node in nodes:
+            sum_conf: float = 0.0
+            neibghbors: List[str] = self._get_neighbors([node], 1)
+            for neighbor_node in neibghbors:
+                sum_conf += self._graph.nodes[neighbor_node]["conf"]
+
+            avg_confs.append(sum_conf / len(neibghbors))
+
+        return avg_confs
+
+    def _pred_same_confs(self, src_img: torch.Tensor, tgt_imgs: torch.Tensor) -> List[float]:
+
+        src_img = src_img.squeeze()
+        all_same_confs: List[float] = []
+
+        for partial_tgt_imgs in torch.split(tgt_imgs, self._param.batch_size, dim=0):
+            src_imgs: torch.Tensor = src_img.repeat(partial_tgt_imgs.shape[0], 1, 1, 1)
+            output_probs: torch.Tensor = infer(self._direction_net, self._device,
+                                               src_imgs, partial_tgt_imgs)
+            reverse_output_probs: torch.Tensor = infer(self._direction_net, self._device,
+                                               partial_tgt_imgs, src_imgs)
+            partial_same_confs: List[float] = ((output_probs[:, 3] + reverse_output_probs[:, 3])/2).tolist()
+            all_same_confs += partial_same_confs
+
+        return all_same_confs
+
     def _predict_goal_node(self, observed_img: torch.Tensor) -> str:
         nodes_pool: List[str] = list(self._graph.nodes)
-        goal_node, _ = self._localize_node(observed_img, nodes_pool)
+        candidate_goal_nodes, _ = self._localize_node(observed_img, nodes_pool)
+        # candidate_goal_nodes, _ = self._localize_node2(observed_img, nodes_pool)
 
-        return goal_node
+        return candidate_goal_nodes[0]
 
     def _publish_img(self, img: torch.Tensor, publisher: rospy.Publisher) -> None:
         img_msg: CompressedImage = tensor_to_compressed_image(img,
-                # (self._param.image_height, int(self._param.image_height*self._param.original_image_width/self._param.original_image_height)))
                 (self._param.observed_image_width, self._param.observed_image_height))
         publisher.publish(img_msg)
 
@@ -232,15 +279,14 @@ class GraphLocalizer:
 
             if self._observed_image is None: continue
 
-            nearest_node: str = self._predict_nearest_node(self._observed_image)
-            # print(f"normal: {infer(self._direction_net, self._device, self._observed_image, self._graph.nodes[nearest_node]['img'])}")
-            # print(f"reverwe: {infer(self._direction_net, self._device, self._graph.nodes[nearest_node]['img'],  self._observed_image)}")
+            nearest_nodes: List[str] = self._predict_nearest_nodes(self._observed_image)
+            nearest_node: str = nearest_nodes[0]
             self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
             nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
             self._nearest_node_marker_pub.publish(nearest_node_marker)
             self._nearest_node_id_pub.publish(nearest_node)
 
-            self._before_node = nearest_node
+            self._before_nodes = nearest_nodes
             self._observed_image = None
 
             rate.sleep()
