@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/with_center_0110/best_acc.pt"/>
-    <arg name="orientation_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/with_center_0110/best_acc.pt"/>
-    <!-- <arg name="direction_net_weight_path" default="/home/amsl/hori/vision_nav/weights/direction/full/best_acc.pt"/> -->
-    <!-- <arg name="orientation_net_weight_path" default="/home/amsl/hori/vision_nav/weights/orientation/full/best_acc.pt"/> -->
+    <!-- <arg name="direction_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/weights/with_center_0110/best_acc.pt"/> -->
+    <!-- <arg name="orientation_net_weight_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/weights/with_center_0110/best_acc.pt"/> -->
+    <arg name="direction_net_weight_path" default="/home/amsl/hori/vision_nav/weights/direction/with_center_0110/best_acc.pt"/>
+    <arg name="orientation_net_weight_path" default="/home/amsl/hori/vision_nav/weights/orientation/with_center_0110/best_acc.pt"/>
 
-    <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_double_fullpower.pkl"/>
+    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_double_fullpower.pkl"/> -->
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
-    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_180.jpg"/> -->
-    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_197.jpg"/>
-    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/0_46.jpg"/> -->
+    <arg name="map_path" default="/home/amsl/hori/vision_nav/map/dkan_4th_perimeter_4th_fullpower.pkl"/>
+
+    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/>
 
     <arg name="observed_image_topic_name" default="/grasscam/image_raw/compressed"/>
 
