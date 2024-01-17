@@ -15,10 +15,10 @@
       <remap from="in" to="/graph_localizer/goal_img/image_raw/" />
       <remap from="out" to="/graph_localizer/goal_img/image_raw/" />
   </node>
-  <node name="first_waypoint_image_republish" pkg="image_transport" type="republish" args="compressed raw">
-      <remap from="in" to="/graph_path_planner/first_waypoint_img/image_raw/" />
-      <remap from="out" to="/graph_path_planner/first_waypoint_img/image_raw/" />
-  </node>
 
+  <node name="waypoint_image_republish" pkg="image_transport" type="republish" args="compressed raw">
+      <remap from="in" to="/rel_pose_label_estimator/waypoint_img/image_raw/" />
+      <remap from="out" to="/rel_pose_label_estimator/waypoint_img/image_raw/" />
+  </node>
 </launch>
 

@@ -5,7 +5,7 @@ import copy
 import torch
 from torchvision.io import read_image
 import torchvision.transforms.functional as F
-from typing import Optional, Union, List, Tuple, cast
+from typing import Optional, Union, List, Tuple, Dict, cast
 import networkx as nx
 
 import rospy
@@ -26,10 +26,9 @@ class Param:
 
     hz: float
     batch_size: int
-    global_localize_conf_th: float
     candidate_neibors_num: int
-    global_candidate_neibors_num: int
     reserving_node_num: int
+    forget_ratio: float
 
     direction_net_weight_path: str
     orientation_net_weight_path: str
@@ -49,10 +48,9 @@ class GraphLocalizer:
 
                 cast(float, rospy.get_param("~hz")),
                 cast(int, rospy.get_param("~batch_size")),
-                cast(float, rospy.get_param("~global_localize_conf_th")),
                 cast(int, rospy.get_param("~candidate_neibors_num")),
-                cast(int, rospy.get_param("~global_candidate_neibors_num")),
                 cast(int, rospy.get_param("~reserving_node_num")),
+                cast(float, rospy.get_param("~forget_ratio")),
 
                 cast(str, rospy.get_param("~direction_net_weight_path")),
                 cast(str, rospy.get_param("~orientation_net_weight_path")),
@@ -88,7 +86,7 @@ class GraphLocalizer:
         self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=1, tcp_nodelay=True)
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
-        self._before_nodes: Optional[List[str]] = None
+        self._before_nearest_nodes: Optional[Dict[str, float]] = None
 
         goal_img: torch.Tensor = read_image(path=self._param.goal_img_path)[[2,1,0],:,:].unsqueeze(0)/255
         self._goal_image: torch.Tensor = F.resize(img=goal_img,
@@ -110,50 +108,43 @@ class GraphLocalizer:
 
         all_same_confs_tensor = torch.tensor(all_same_confs)
         max_confs, max_indices  = torch.topk(all_same_confs_tensor, self._param.reserving_node_num)
-        # print(f"max n nodes: {[nodes_pool[i] for i in max_indices]}")
-        # print(f"max n nodes conf: {max_confs}")
 
+        return [nodes_pool[i] for i in max_indices], max_confs.tolist()
 
-        return [nodes_pool[i] for i in max_indices], max_confs
+    # def _localize_node2(self, tgt_img: torch.Tensor, nodes_pool: List[str]) -> Tuple[List[str], List[float]]:
+    #
+    #     if(len(nodes_pool) != self._graph.number_of_nodes()):
+    #         nodes_pool_including_neighbor: List[str] = self._get_neighbors(nodes_pool, 1)
+    #     else: 
+    #         nodes_pool_including_neighbor: List[str] = nodes_pool
+    #
+    #     all_imgs_pool: torch.Tensor = self._create_img_tensor_from_nodes(nodes_pool_including_neighbor)
+    #     all_same_confs = self._pred_same_confs(tgt_img, all_imgs_pool)
+    #     self._register_conf_to_nodes(nodes_pool_including_neighbor, all_same_confs)
+    #
+    #     avg_same_confs = self._calc_avg_confs_of_neighbors(nodes_pool)
+    #     avg_same_confs_tensor = torch.tensor(avg_same_confs)
+    #
+    #     max_confs, max_indices  = torch.topk(avg_same_confs_tensor, 5)
+    #     print(f"max 5 nodes avg: {[nodes_pool[i] for i in max_indices]}")
+    #     print(f"max 5 nodes avgconf: {max_confs}")
+    #
+    #     return [nodes_pool[i] for i in max_indices], max_confs
 
-    def _localize_node2(self, tgt_img: torch.Tensor, nodes_pool: List[str]) -> Tuple[List[str], List[float]]:
-
-        if(len(nodes_pool) != self._graph.number_of_nodes()):
-            nodes_pool_including_neighbor: List[str] = self._get_neighbors(nodes_pool, 1)
-        else: 
-            nodes_pool_including_neighbor: List[str] = nodes_pool
-
-        all_imgs_pool: torch.Tensor = self._create_img_tensor_from_nodes(nodes_pool_including_neighbor)
-        all_same_confs = self._pred_same_confs(tgt_img, all_imgs_pool)
-        self._register_conf_to_nodes(nodes_pool_including_neighbor, all_same_confs)
-
-        avg_same_confs = self._calc_avg_confs_of_neighbors(nodes_pool)
-        avg_same_confs_tensor = torch.tensor(avg_same_confs)
-
-        max_confs, max_indices  = torch.topk(avg_same_confs_tensor, 5)
-        print(f"max 5 nodes avg: {[nodes_pool[i] for i in max_indices]}")
-        print(f"max 5 nodes avgconf: {max_confs}")
-
-        return [nodes_pool[i] for i in max_indices], max_confs
-
-    def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> List[str]:
+    # def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> List[str]:
+    def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> Dict[str, float]:
         nodes_pool: List[str]
-        if self._before_nodes == None:
+        if self._before_nearest_nodes == None:
             nodes_pool = list(self._graph.nodes)
             rospy.loginfo("first global localizing...")
         else:
-            nodes_pool = self._get_neighbors(self._before_nodes, self._param.candidate_neibors_num)
+            # nodes_pool = self._get_neighbors(self._before_nodes, self._param.candidate_neibors_num)
+            nodes_pool = self._get_neighbors(list(self._before_nearest_nodes.keys()), self._param.candidate_neibors_num)
 
         nearest_nodes, confs = self._localize_node(observed_img, nodes_pool)
         # nearest_nodes, confs = self._localize_node2(observed_img, nodes_pool)
-        if  confs[0] < self._param.global_localize_conf_th:
-            rospy.loginfo("wider localizing...")
-            nodes_pool = self._get_neighbors(self._before_nodes, self._param.global_candidate_neibors_num)
-            nearest_nodes, _ = self._localize_node(observed_img, nodes_pool)
-            # nearest_nodes, _ = self._localize_node2(observed_img, nodes_pool)
 
-        # rospy.loginfo(f"conf: {confs[0]}")
-        return nearest_nodes
+        return dict(zip(nearest_nodes, confs))
 
     def _get_neighbors(self, node: List[str], search_depth: int) -> List[str]:
         nodes_pool = copy.deepcopy(node)
@@ -206,6 +197,25 @@ class GraphLocalizer:
         # candidate_goal_nodes, _ = self._localize_node2(observed_img, nodes_pool)
 
         return candidate_goal_nodes[0]
+
+    def _integrate_double_pred(self, before_nodes: Dict[str, float], 
+            current_nodes: Dict[str, float], forget_ratio: float) -> Dict[str, float]:
+
+        forget_ratio = min(forget_ratio, 1)
+        node_num = len(before_nodes)
+
+        for node in before_nodes.keys(): before_nodes[node] *= (1 - forget_ratio)
+        for node in current_nodes.keys(): current_nodes[node] *= forget_ratio
+
+        for node, conf in current_nodes.items():
+            if node in before_nodes: before_nodes[node] += conf
+            else: before_nodes[node] = conf
+
+        integrated_nodes: Dict[str, float] = dict(sorted(before_nodes.items(), key=lambda x:x[1], reverse=True))
+        integrated_nodes = {node:integrated_nodes[node] for node in list(integrated_nodes)[:node_num]}
+
+        # conf の高い上位 preserve_node_len 個を返す
+        return integrated_nodes
 
     def _publish_img(self, img: torch.Tensor, publisher: rospy.Publisher) -> None:
         img_msg: CompressedImage = tensor_to_compressed_image(img,
@@ -279,14 +289,20 @@ class GraphLocalizer:
 
             if self._observed_image is None: continue
 
-            nearest_nodes: List[str] = self._predict_nearest_nodes(self._observed_image)
-            nearest_node: str = nearest_nodes[0]
+            current_nearest_nodes: Dict[str, float] = self._predict_nearest_nodes(self._observed_image)
+            if self._before_nearest_nodes != None:
+                integrated_nearest_nodes: Dict[str, float] = self._integrate_double_pred(
+                        self._before_nearest_nodes, current_nearest_nodes, self._param.forget_ratio)
+            else:
+                integrated_nearest_nodes: Dict[str, float] = current_nearest_nodes
+
+            nearest_node: str = list(integrated_nearest_nodes.keys())[0]
             self._publish_img(self._graph.nodes[nearest_node]['img'], self._nearest_node_img_pub)
             nearest_node_marker: Marker = self._create_nearest_marker_node(nearest_node)
             self._nearest_node_marker_pub.publish(nearest_node_marker)
             self._nearest_node_id_pub.publish(nearest_node)
 
-            self._before_nodes = nearest_nodes
+            self._before_nearest_nodes = integrated_nearest_nodes
             self._observed_image = None
 
             rate.sleep()

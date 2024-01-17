@@ -10,12 +10,9 @@ topological_map_visualizer:
 graph_localizer:
   hz: 5
   batch_size: 32
-  # global_localize_conf_th: 0.4
-  global_localize_conf_th: 0.00
   candidate_neibors_num: 3
-  # candidate_neibors_num: 10
-  global_candidate_neibors_num: 5
-  reserving_node_num: 3
+  reserving_node_num: 5
+  forget_ratio: 0.15
 
 graph_path_planner:
   hz: 5
