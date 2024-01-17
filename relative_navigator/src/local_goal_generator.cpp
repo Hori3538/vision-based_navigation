@@ -47,6 +47,13 @@ namespace relative_navigator
             std::vector<float> angle_for_each_label, std::vector<float> direction_label_conf,
             float dist_to_local_goal)
     {
+        float sum_of_positive_confs = std::accumulate(direction_label_conf.begin(),
+                                                      direction_label_conf.end()-1, 0.0);
+        // negative の conf が大きい時 local goal が近くなりすぎるため，
+        // positive conf の合計が1になるようにスケーリングする
+        std::for_each(direction_label_conf.begin(), direction_label_conf.end()-1,
+                [sum_of_positive_confs](float& conf){conf /= sum_of_positive_confs;});
+
         float weighted_mean_x = 0;
         float weighted_mean_y = 0;
         for(int i=0; const auto& angle: angle_for_each_label)

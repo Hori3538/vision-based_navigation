@@ -7,6 +7,7 @@
 #include <tf/tf.h>
 
 #include <optional>
+#include <numeric>
 
 namespace relative_navigator
 {
