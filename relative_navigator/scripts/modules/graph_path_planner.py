@@ -7,7 +7,7 @@ import networkx as nx
 import rospy
 import torch
 from visualization_msgs.msg import Marker
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import CompressedImage
 from relative_navigator_msgs.msg import NodeInfo, NodeInfoArray
@@ -24,8 +24,8 @@ class Param:
     observed_image_height: int
 
     hz: float
-    # first_waypoint_dist: int
     waypoint_num: int
+    goal_th: int
 
     map_path: str
 
@@ -40,8 +40,8 @@ class GraphPathPlanner:
                 cast(int, rospy.get_param("/common/observed_image_height")),
 
                 cast(float, rospy.get_param("~hz")),
-                # cast(int, rospy.get_param("~first_waypoint_dist")),
                 cast(int, rospy.get_param("~waypoint_num")),
+                cast(int, rospy.get_param("~goal_th")),
 
                 cast(str, rospy.get_param("~map_path")),
             )
@@ -54,11 +54,9 @@ class GraphPathPlanner:
         self._nearest_node_id_sub: rospy.Subscriber = rospy.Subscriber("/graph_localizer/nearest_node_id",
                 String, self._nearest_node_callback, queue_size=1)
 
-        # self._first_waypoint_img_pub = rospy.Publisher("~first_waypoint_img/image_raw/compressed",
-                # CompressedImage, queue_size=1, tcp_nodelay=True)
-        # self._first_waypoint_id_pub = rospy.Publisher("~first_waypoint_id", String, queue_size=1, tcp_nodelay=True)
         self._waypoints_pub = rospy.Publisher("~waypoints", NodeInfoArray, queue_size=1, tcp_nodelay=True)
         self._shortest_path_pub = rospy.Publisher("~shortest_path", Marker, queue_size=1, tcp_nodelay=True)
+        self._reaching_goal_flag_pub = rospy.Publisher("~reaching_goal_flag", Bool, queue_size=1, tcp_nodelay=True)
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
 
@@ -150,34 +148,32 @@ class GraphPathPlanner:
         rate = rospy.Rate(self._param.hz)
         while not rospy.is_shutdown():
             if self._goal_node_id is None or self._nearest_node_id is None: continue
-            if self._goal_node_id == self._nearest_node_id:
-                rospy.loginfo(f"reaching goal")
-                self._nearest_node_id = None
-                continue
+            # if self._goal_node_id == self._nearest_node_id:
+            #     rospy.loginfo(f"reaching goal")
+            #     self._nearest_node_id = None
+            #     continue
 
             shortest_path: Optional[List[str]] = self._calc_shortest_path(self._nearest_node_id, self._goal_node_id)
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_100", "1_150")
-            # print(f"shortest_path: {shortest_path}")
             if shortest_path is None:
-                self._nearest_node_id = None
+                # self._nearest_node_id = None
                 continue
+
+            reaching_goal_flag = Bool()
+            if len(shortest_path) <= self._param.goal_th:
+                rospy.loginfo(f"reaching goal")
+                reaching_goal_flag.data = True
+                self._reaching_goal_flag_pub.publish(reaching_goal_flag)
+                continue
+
+            reaching_goal_flag.data = False
+            self._reaching_goal_flag_pub.publish(reaching_goal_flag)
 
             shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)
             self._visualize_path(shortest_path_marker)
 
-            # first_waypoint_dist: int = min(len(shortest_path)-1, self._param.first_waypoint_dist)
             waypoint_num: int = min(len(shortest_path), self._param.waypoint_num)
             node_array_msg: NodeInfoArray = self._create_node_info_array_msg(shortest_path[:waypoint_num])
             self._waypoints_pub.publish(node_array_msg)
-            # first_waypoint_id: str = shortest_path[first_waypoint_dist]
-            # first_waypoint_img_tensor: torch.Tensor = self._graph.nodes[first_waypoint_id]['img']
-            # first_waypoint_img_msg: CompressedImage = tensor_to_compressed_image(
-            #         first_waypoint_img_tensor,
-            #         (self._param.observed_image_width, self._param.observed_image_height)
-            #         )
-
-            # self._first_waypoint_id_pub.publish(first_waypoint_id)
-            # self._first_waypoint_img_pub.publish(first_waypoint_img_msg)
 
             self._nearest_node_id = None
 

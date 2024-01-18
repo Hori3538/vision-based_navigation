@@ -65,6 +65,7 @@ namespace relative_navigator
             void local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg);
             void odometry_callback(const nav_msgs::OdometryConstPtr &msg);
             void scan_callback(const sensor_msgs::LaserScanConstPtr & msg);
+            void reaching_goal_flag_callback(const std_msgs::BoolConstPtr & msg);
 
             geometry_msgs::Pose calc_previous_base_to_now_base() const;
             static double adjust_yaw(double yaw);
@@ -94,6 +95,7 @@ namespace relative_navigator
 
             std::optional<geometry_msgs::PoseStamped> local_goal_;
             std::optional<sensor_msgs::LaserScan> scan_;
+            std::optional<std_msgs::Bool> reaching_goal_flag_;
             nav_msgs::Odometry current_odometry_;
             std::optional<nav_msgs::Odometry> previous_odometry_;
 
@@ -108,10 +110,11 @@ namespace relative_navigator
             ros::Subscriber local_goal_sub_;
             ros::Subscriber odometry_sub_;
             ros::Subscriber scan_sub_;
+            ros::Subscriber reaching_goal_flag_sub_;
 
             ros::Publisher control_input_pub_;
-            ros::Publisher reaching_target_pose_flag_pub_;
-            // ros::Publisher local_goal_pub_;
+            // ros::Publisher reaching_target_pose_flag_pub_;
+            ros::Publisher local_goal_pub_;
             ros::Publisher best_local_path_pub_;
             ros::Publisher candidate_local_path_pub_;
     };

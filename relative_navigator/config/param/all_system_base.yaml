@@ -16,13 +16,12 @@ graph_localizer:
 
 graph_path_planner:
   hz: 5
-  # first_waypoint_dist: 2
   waypoint_num: 5
+  goal_th: 2 # 1 <= goal_th
 
 rel_pose_label_estimator:
   observed_image_width: 1280
   observed_image_height: 720
-  # hz: 10
   hz: 5
 
 local_goal_generator:

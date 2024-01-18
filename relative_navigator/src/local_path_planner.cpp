@@ -1,3 +1,4 @@
+#include "std_msgs/Bool.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator
@@ -27,9 +28,9 @@ namespace relative_navigator
         local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
         odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
         scan_sub_ = nh.subscribe<sensor_msgs::LaserScan>(param_.scan_topic_name, 1, &LocalPathPlanner::scan_callback, this);
+        reaching_goal_flag_sub_ = nh.subscribe<std_msgs::Bool>("/graph_path_planner/reaching_goal_flag", 1, &LocalPathPlanner::reaching_goal_flag_callback, this);
 
-        // reaching_target_pose_flag_pub_ = nh.advertise<std_msgs::Bool>("reaching_target_pose_flag", 1);
-        // local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
+        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
         control_input_pub_ = nh.advertise<geometry_msgs::Twist>("/local_path/cmd_vel", 1);
         best_local_path_pub_ = nh.advertise<nav_msgs::Path>("/best_local_path", 1);
         candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("/candidate_local_path", 1);
@@ -40,7 +41,6 @@ namespace relative_navigator
         local_goal_ = *msg;
         reaching_target_point_flag_ = false;
         reaching_target_pose_flag_ = false;
-        // if(!local_goal_.has_value() || reaching_target_pose_flag_){
         // if(!local_goal_.has_value() || reaching_target_pose_flag_){
         //     local_goal_ = *msg;
         //     reaching_target_point_flag_ = false;
@@ -67,6 +67,11 @@ namespace relative_navigator
     {
         scan_ = *msg;
         obs_list_ = scan_to_obs_list(scan_.value());
+    }
+
+    void LocalPathPlanner::reaching_goal_flag_callback(const std_msgs::BoolConstPtr& msg)
+    {
+        reaching_goal_flag_ = *msg;
     }
 
     double LocalPathPlanner::adjust_yaw(double yaw)
@@ -190,8 +195,9 @@ namespace relative_navigator
     std::pair<double, double> LocalPathPlanner::decide_input()
     {
         std::pair<double, double> input{0.0, 0.0};
-        if (reaching_target_pose_flag_) return input;
-        
+        if(reaching_target_pose_flag_) return input;
+        if(reaching_goal_flag_.has_value() && reaching_goal_flag_.value().data) return input;
+
         std::vector<double> dynamic_window = calc_dynamic_window();
         double best_score = -INFINITY;
 
@@ -234,7 +240,6 @@ namespace relative_navigator
                 }
             }
         }
-        previous_input_ = input;
 
         return input;
     }
@@ -291,7 +296,6 @@ namespace relative_navigator
 
     double LocalPathPlanner::calc_dist_from_pose(geometry_msgs::Pose pose)
     {
-        // return std::sqrt(pow(pose.position.x, 2) + pow(pose.position.y, 2));
         return std::hypot(pose.position.x, pose.position.y);
     }
 
@@ -335,16 +339,16 @@ namespace relative_navigator
                 std::tie(reaching_target_point_flag_, reaching_target_pose_flag_) = reaching_judge();
 
                 std::pair<double, double> input = decide_input();
+                previous_input_ = input;
                 publish_control_input(input.first, input.second, control_input_pub_);
-                // publish_reaching_flag(reaching_target_pose_flag_pub_, reaching_target_pose_flag_);
 
                 for(auto& trajectory : trajectories_)
                     visualize_trajectory(trajectory, candidate_local_path_pub_);
 
                 visualize_trajectory(best_trajectory_, best_local_path_pub_);
-                // local_goal_pub_.publish(local_goal_.value());
-                //
+                local_goal_pub_.publish(local_goal_.value());
                 if(reaching_target_pose_flag_) local_goal_.reset();
+
             }
 
             ros::spinOnce();
