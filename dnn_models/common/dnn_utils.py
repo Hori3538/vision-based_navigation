@@ -1,5 +1,6 @@
 import random
 from datetime import datetime
+import os
 
 import torch
 import torch.nn as nn
@@ -36,8 +37,10 @@ def image_tensor_cat_and_show(reft_img: torch.Tensor, right_img: torch.Tensor, i
 
 transform: nn.Sequential = nn.Sequential(
         transforms.ColorJitter(
-            brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
-        transforms.RandomGrayscale(0.2),
+            # brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1),  # type: ignore
+            # brightness=0.7, contrast=0.7, saturation=0.7, hue=0.2),  # type: ignore
+            brightness=[0.3, 2.0], contrast=0.7, saturation=0.7, hue=0.2),  # type: ignore
+        # transforms.RandomGrayscale(0.2),
         transforms.RandomApply([transforms.GaussianBlur(3)], 0.2),
-        transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
+        # transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
     )

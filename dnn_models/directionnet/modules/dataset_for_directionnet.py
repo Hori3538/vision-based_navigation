@@ -6,6 +6,7 @@ import torch
 import random
 import time
 import copy
+import dnn_utils
 
 from training_data import TrainingData
 
@@ -91,6 +92,7 @@ def test() -> None:
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True,
                             num_workers=os.cpu_count(), pin_memory=True)
 
+    transform = dnn_utils.transform
     DatasetForDirectionNet.equalize_label_counts(dataset)
     data_len = dataset.__len__()
     print(f"data len: {data_len}")
@@ -104,7 +106,8 @@ def test() -> None:
 
     for batch in dataloader:
         data = TrainingData(*batch)
-        image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
+        # image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
+        image_tensor = torch.cat((transform(data.src_image[0]), transform(data.dst_image[0])), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
         cv2.imshow("images", image)
         print(f"direction_label: {data.direction_label}")

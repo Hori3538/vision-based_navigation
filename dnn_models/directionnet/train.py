@@ -25,13 +25,13 @@ def main():
     parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
-    parser.add_argument("-b", "--batch-size", type=int, default=64)
+    parser.add_argument("-b", "--batch-size", type=int, default=128)
     parser.add_argument("-w", "--num-workers", type=int, default=8)
-    parser.add_argument("-e", "--num-epochs", type=int, default=30)
+    parser.add_argument("-e", "--num-epochs", type=int, default=40)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
-    parser.add_argument("--class-balanced", type=bool, default=True)
+    parser.add_argument("--class-balanced", type=int, default=1)
     args = parser.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,7 +49,10 @@ def main():
         for key, value in vars(args).items():
             f.write(f"{key}, {value}\n")
 
-    model = DirectionNet().to(device)
+    # model = DirectionNet().to(device)
+    model = DirectionNet()
+    model = torch.nn.DataParallel(model)
+    model.to(device)
 
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(train_dataset, max_gap_times=3)
