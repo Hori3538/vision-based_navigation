@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dirs", type=str, nargs='*')
     parser.add_argument("--weight-path", type=str)
+    parser.add_argument("--model-path", type=str, default="")
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
@@ -22,9 +23,12 @@ def main():
 
     fix_seed()
 
-    model = RelPosNet().to(device)
-    model.load_state_dict(torch.load(args.weight_path))
-    model.eval()
+    if args.model_path == "":
+        model = RelPosNet().to(device)
+        model.load_state_dict(torch.load(args.weight_path))
+        model.eval()
+    else:
+        model = torch.jit.load(args.model_path).eval().to(device)
 
     test_dataset = DatasetForDirectionNet(args.dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(test_dataset, max_gap_times=3)
@@ -41,7 +45,7 @@ def main():
             src_image, dst_image, _, _, relative_pose = data
 
             test_output = model(src_image.to(device), dst_image.to(device))
-            test_loss = loss_func(test_output, relative_pose)
+            test_loss = loss_func(test_output, relative_pose.to(device))
             mse_loss_sum += test_loss
 
         print(f"rmse avg {math.sqrt(mse_loss_sum / len(test_loader))}")

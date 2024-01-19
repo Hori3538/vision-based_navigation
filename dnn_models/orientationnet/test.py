@@ -14,17 +14,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-dirs", type=str, nargs='*')
     parser.add_argument("--weight-path", type=str)
+    parser.add_argument("--model-path", type=str, default="")
     parser.add_argument("--image-dir", type=str, default="/home/amsl/Pictures")
     args = parser.parse_args()
 
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    device ="cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device ="cpu"
 
     fix_seed()
 
-    model = OrientationNet().to(device)
-    model.load_state_dict(torch.load(args.weight_path))
-    model.eval()
+    if args.model_path == "":
+        model = OrientationNet().to(device)
+        model.load_state_dict(torch.load(args.weight_path))
+        model.eval()
+    else:
+        model = torch.jit.load(args.model_path).eval().to(device)
 
     test_dataset = DatasetForOrientationNet(args.dataset_dirs)
     DatasetForOrientationNet.equalize_label_counts(test_dataset)

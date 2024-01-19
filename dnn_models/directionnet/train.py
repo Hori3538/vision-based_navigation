@@ -22,21 +22,24 @@ def main():
     parser.add_argument("-s", "--seed", type=int, default=42)
     parser.add_argument("-d", "--train-dataset-dirs", type=str, nargs='*')
     parser.add_argument("-v", "--valid-dataset-dirs", type=str, default="", nargs='*')
-    parser.add_argument("-n", "--num-data", type=int, default=1000000)
+    # parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
-    parser.add_argument("-b", "--batch-size", type=int, default=128)
+    parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=8)
     parser.add_argument("-e", "--num-epochs", type=int, default=40)
+    parser.add_argument("-g", "--gpu-device", type=int, default=0)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
     parser.add_argument("--class-balanced", type=int, default=1)
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = f"cuda:{args.gpu_device}" if torch.cuda.is_available() else "cpu"
+    print(f"gpu_device: {device}")
     # device = "cpu" 
     torch.backends.cudnn.bencmark = True
+    # torch.backends.cudnn.enabled = False
     # torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
 
     dirs_name = args.dirs_name if args.dirs_name else datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -49,19 +52,19 @@ def main():
         for key, value in vars(args).items():
             f.write(f"{key}, {value}\n")
 
-    # model = DirectionNet().to(device)
-    model = DirectionNet()
-    model = torch.nn.DataParallel(model)
-    model.to(device)
+    model = DirectionNet().to(device)
+    # model = DirectionNet()
+    # model = torch.nn.DataParallel(model)
+    # model.to(device)
 
     train_dataset = DatasetForDirectionNet(args.train_dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(train_dataset, max_gap_times=3)
+    train_direction_label_counts = DatasetForDirectionNet.equalize_label_counts(train_dataset, max_gap_times=3)
     valid_dataset = DatasetForDirectionNet(args.valid_dataset_dirs)
-    DatasetForDirectionNet.equalize_label_counts(valid_dataset)
+    valid_direction_label_counts = DatasetForDirectionNet.equalize_label_counts(valid_dataset)
 
-    num_data: int = min(args.num_data, len(train_dataset))
-    train_dataset, _ = random_split(train_dataset, [num_data, len(train_dataset) - num_data],
-            generator=torch.Generator().manual_seed(args.seed))
+    # num_data: int = min(args.num_data, len(train_dataset))
+    # train_dataset, _ = random_split(train_dataset, [num_data, len(train_dataset) - num_data],
+    #         generator=torch.Generator().manual_seed(args.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
             shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
@@ -70,9 +73,9 @@ def main():
 
     train_transform = dnn_utils.transform
 
-    train_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(train_dataset)
+    # train_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(train_dataset)
     print(f"train_direction_label_counts: {train_direction_label_counts}")
-    valid_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(valid_dataset)
+    # valid_direction_label_counts = DatasetForDirectionNet.count_data_for_each_label(valid_dataset)
     print(f"direction_label_counts: {valid_direction_label_counts}")
     criterion_for_direction = FocalLoss(fl_gamma=2,
                                         samples_per_class=train_direction_label_counts.tolist(),

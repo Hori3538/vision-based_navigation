@@ -21,18 +21,21 @@ def main():
     parser.add_argument("-s", "--seed", type=int, default=42)
     parser.add_argument("-d", "--train-dataset-dirs", type=str, nargs='*')
     parser.add_argument("-v", "--valid-dataset-dirs", type=str, default="", nargs='*')
-    parser.add_argument("-n", "--num-data", type=int, default=1000000)
+    # parser.add_argument("-n", "--num-data", type=int, default=1000000)
     parser.add_argument("-l", "--lr-max", type=float, default=1e-3)
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=8)
     parser.add_argument("-e", "--num-epochs", type=int, default=80)
+    parser.add_argument("-g", "--gpu-device", type=int, default=0)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")
     parser.add_argument("-r", "--dirs-name", type=str, default="")
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = f"cuda:{args.gpu_device}" if torch.cuda.is_available() else "cpu"
+    print(f"gpu_device: {device}")
     # device = "cpu" 
     torch.backends.cudnn.bencmark = True
     # torch.multiprocessing.set_start_method("spawn") if args.num_workers>0 else None
@@ -55,9 +58,9 @@ def main():
     valid_dataset = DatasetForDirectionNet(args.valid_dataset_dirs)
     DatasetForDirectionNet.equalize_label_counts(valid_dataset, max_gap_times=3)
 
-    num_data: int = min(args.num_data, len(train_dataset))
-    train_dataset, _ = random_split(train_dataset, [num_data, len(train_dataset) - num_data],
-            generator=torch.Generator().manual_seed(args.seed))
+    # num_data: int = min(args.num_data, len(train_dataset))
+    # train_dataset, _ = random_split(train_dataset, [num_data, len(train_dataset) - num_data],
+    #         generator=torch.Generator().manual_seed(args.seed))
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size,
             shuffle=True, drop_last=True, num_workers=args.num_workers, pin_memory=True)
