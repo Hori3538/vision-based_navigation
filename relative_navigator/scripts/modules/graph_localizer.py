@@ -13,7 +13,6 @@ from sensor_msgs.msg import CompressedImage
 from visualization_msgs.msg import Marker
 from std_msgs.msg import String
 
-from my_models import DirectionNet
 from .utils import compressed_image_to_tensor, tensor_to_compressed_image, infer
 from .topological_map_io import load_topological_map
 
@@ -30,8 +29,7 @@ class Param:
     reserving_node_num: int
     forget_ratio: float
 
-    direction_net_weight_path: str
-    orientation_net_weight_path: str
+    direction_net_path: str
     goal_img_path: str
     map_path: str
     observed_image_topic_name: str
@@ -52,8 +50,7 @@ class GraphLocalizer:
                 cast(int, rospy.get_param("~reserving_node_num")),
                 cast(float, rospy.get_param("~forget_ratio")),
 
-                cast(str, rospy.get_param("~direction_net_weight_path")),
-                cast(str, rospy.get_param("~orientation_net_weight_path")),
+                cast(str, rospy.get_param("~direction_net_path")),
                 cast(str, rospy.get_param("~goal_img_path")),
                 cast(str, rospy.get_param("~map_path")),
                 cast(str, rospy.get_param("~observed_image_topic_name")),
@@ -62,9 +59,7 @@ class GraphLocalizer:
         self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
         # self._device: str = "cpu"
 
-        self._direction_net: DirectionNet = DirectionNet().to(self._device)
-        self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
-        self._direction_net.eval()
+        self._direction_net: torch.ScriptModule = torch.jit.load(self._param.direction_net_path).eval().to(self._device)
 
         self._observed_image: Optional[torch.Tensor] = None
         self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(
@@ -131,7 +126,6 @@ class GraphLocalizer:
     #
     #     return [nodes_pool[i] for i in max_indices], max_confs
 
-    # def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> List[str]:
     def _predict_nearest_nodes(self, observed_img: torch.Tensor) -> Dict[str, float]:
         nodes_pool: List[str]
         if self._before_nearest_nodes == None:

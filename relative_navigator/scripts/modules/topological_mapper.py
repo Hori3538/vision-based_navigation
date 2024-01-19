@@ -13,7 +13,6 @@ from geometry_msgs.msg import Pose
 
 from transformutils import get_array_2d_from_msg
 
-from my_models import DirectionNet
 from .topological_map_io import save_topological_map, load_topological_map, save_nodes_as_img
 from .utils import compressed_image_to_tensor, infer, msg_to_pose
 
@@ -22,7 +21,7 @@ class Param:
     image_width: int
     image_height: int
 
-    direction_net_weight_path: str
+    direction_net_path: str
     bagfiles_dir: str
     map_save_dir: str
     map_name: str
@@ -42,7 +41,7 @@ class TopologicalMapper:
             cast(int, rospy.get_param("~image_width", 224)),
             cast(int, rospy.get_param("~image_height", 224)),
 
-            cast(str, rospy.get_param("~direction_net_weight_path")),
+            cast(str, rospy.get_param("~direction_net_path")),
             cast(str, rospy.get_param("~bagfiles_dir")),
             cast(str, rospy.get_param("~map_save_dir")),
             cast(str, rospy.get_param("~map_name")),
@@ -58,9 +57,8 @@ class TopologicalMapper:
 
         self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self._direction_net: DirectionNet = DirectionNet().to(self._device)
-        self._direction_net.load_state_dict(torch.load(self._param.direction_net_weight_path, map_location=torch.device(self._device)))
-        self._direction_net.eval()
+        self._direction_net: torch.ScriptModule = torch.jit.load(self._param.direction_net_path).eval().to(self._device)
+ 
 
         self._graph = nx.DiGraph()
 

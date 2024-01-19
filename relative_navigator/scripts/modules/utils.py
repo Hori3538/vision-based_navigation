@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torchvision.transforms.functional import to_tensor
-from PIL import Image
+from torch.jit._script import ScriptModule
 
 from sensor_msgs.msg import CompressedImage
 from nav_msgs.msg import Odometry
@@ -40,8 +40,16 @@ def tensor_to_cv_image(image_tensor: torch.Tensor) -> np.ndarray:
     image = (image_tensor.squeeze()*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
     return image
 
+# @torch.no_grad()
+# def infer(model: Union[DirectionNet, OrientationNet], device: str, 
+#         src_img: torch.Tensor, tgt_img: torch.Tensor) -> torch.Tensor:
+#     model_output = model(src_img.to(device), tgt_img.to(device))
+#     output_probs = F.softmax(model_output, 1)
+#
+#     return output_probs
+
 @torch.no_grad()
-def infer(model: Union[DirectionNet, OrientationNet], device: str, 
+def infer(model: ScriptModule, device: str, 
         src_img: torch.Tensor, tgt_img: torch.Tensor) -> torch.Tensor:
     model_output = model(src_img.to(device), tgt_img.to(device))
     output_probs = F.softmax(model_output, 1)
