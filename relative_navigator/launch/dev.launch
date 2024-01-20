@@ -2,14 +2,14 @@
 <launch>
     <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/with_center_0110_ts.pt"/>
     <arg name="orientation_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/model/with_center_0110_ts.pt"/>
+    <arg name="rel_pose_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/relposnet/model/with_center_0110_ts.pt"/>
 
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_double_fullpower.pkl"/> -->
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
     <arg name="map_path" default="/home/amsl/hori/vision_nav/map/dkan_4th_perimeter_4th_fullpower.pkl"/>
-
     <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/>
-
     <arg name="observed_image_topic_name" default="/grasscam/image_raw/compressed"/>
+    <arg name="mode" default="rel_pose_label"/>
 
     <rosparam command="load" file="$(find relative_navigator)/config/param/all_system_base.yaml"/>
 
@@ -33,17 +33,26 @@
             map_path: $(arg map_path)
         </rosparam>
     </node>
+    
+    <group if="$(eval mode=='rel_pose_label')">
+        <node pkg="relative_navigator" type="rel_pose_label_estimator_node.py" name="rel_pose_label_estimator" output="screen">
+            <rosparam subst_value="True">
+                direction_net_path: $(arg direction_net_path)
+                orientation_net_path: $(arg orientation_net_path)
+                observed_image_topic_name: $(arg observed_image_topic_name)
+            </rosparam>
+        </node>
+        <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator" output="screen">
+        </node>
+    </group>
 
-    <node pkg="relative_navigator" type="rel_pose_label_estimator_node.py" name="rel_pose_label_estimator" output="screen">
+    <node pkg="relative_navigator" type="rel_pose_estimator_node.py" name="rel_pose_estimator" output="screen" if="$(eval mode=='rel_pose')">
         <rosparam subst_value="True">
-            direction_net_path: $(arg direction_net_path)
-            orientation_net_path: $(arg orientation_net_path)
+            rel_pose_net_path: $(arg rel_pose_net_path)
             observed_image_topic_name: $(arg observed_image_topic_name)
         </rosparam>
     </node>
 
-  <node pkg="relative_navigator" type="local_goal_generator_node" name="local_goal_generator" output="screen">
-  </node>
 
   <node pkg="relative_navigator" type="local_path_planner_node" name="local_path_planner" output="screen">
         <rosparam subst_value="True">

@@ -1,4 +1,3 @@
-#include "std_msgs/Bool.h"
 #include <local_path_planner/local_path_planner.hpp>
 
 namespace relative_navigator

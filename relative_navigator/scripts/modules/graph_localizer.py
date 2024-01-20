@@ -132,7 +132,6 @@ class GraphLocalizer:
             nodes_pool = list(self._graph.nodes)
             rospy.loginfo("first global localizing...")
         else:
-            # nodes_pool = self._get_neighbors(self._before_nodes, self._param.candidate_neibors_num)
             nodes_pool = self._get_neighbors(list(self._before_nearest_nodes.keys()), self._param.candidate_neibors_num)
 
         nearest_nodes, confs = self._localize_node(observed_img, nodes_pool)
@@ -153,21 +152,21 @@ class GraphLocalizer:
 
         return nodes_pool
 
-    def _register_conf_to_nodes(self, nodes: List[str], confs: List[float]) -> None:
-        for node, conf in zip(nodes, confs):
-            self._graph.nodes[node]["conf"] = conf
+    # def _register_conf_to_nodes(self, nodes: List[str], confs: List[float]) -> None:
+    #     for node, conf in zip(nodes, confs):
+    #         self._graph.nodes[node]["conf"] = conf
 
-    def _calc_avg_confs_of_neighbors(self, nodes: List[str]) -> List[float]:
-        avg_confs = []
-        for node in nodes:
-            sum_conf: float = 0.0
-            neibghbors: List[str] = self._get_neighbors([node], 1)
-            for neighbor_node in neibghbors:
-                sum_conf += self._graph.nodes[neighbor_node]["conf"]
-
-            avg_confs.append(sum_conf / len(neibghbors))
-
-        return avg_confs
+    # def _calc_avg_confs_of_neighbors(self, nodes: List[str]) -> List[float]:
+    #     avg_confs = []
+    #     for node in nodes:
+    #         sum_conf: float = 0.0
+    #         neibghbors: List[str] = self._get_neighbors([node], 1)
+    #         for neighbor_node in neibghbors:
+    #             sum_conf += self._graph.nodes[neighbor_node]["conf"]
+    #
+    #         avg_confs.append(sum_conf / len(neibghbors))
+    #
+    #     return avg_confs
 
     def _pred_same_confs(self, src_img: torch.Tensor, tgt_imgs: torch.Tensor) -> List[float]:
 

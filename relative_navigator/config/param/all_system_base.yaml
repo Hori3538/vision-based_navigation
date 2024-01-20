@@ -24,6 +24,12 @@ rel_pose_label_estimator:
   observed_image_height: 720
   hz: 5
 
+rel_pose_estimator:
+  observed_image_width: 1280
+  observed_image_height: 720
+  hz: 5
+  local_goal_min_th: 0.5
+
 local_goal_generator:
   hz: 5
   dist_to_local_goal: 1.5
