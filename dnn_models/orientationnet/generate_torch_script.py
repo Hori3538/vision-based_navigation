@@ -14,7 +14,7 @@ def main() -> None:
     args = parser.parse_args()
 
     model = OrientationNet().eval().cuda()
-    model.load_state_dict(torch.load(args.weight_path))
+    model.load_state_dict(torch.load(args.weight_path, map_location="cuda:0"))
 
     sample = torch.randn(1, 3, 224, 224).cuda(), torch.randn(1, 3, 224, 224).cuda()
     print("Tracing model.")
