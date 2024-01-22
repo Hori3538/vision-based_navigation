@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/with_center_0110_ts.pt"/>
-    <arg name="orientation_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/model/with_center_0110_ts.pt"/>
-    <arg name="rel_pose_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/relposnet/model/with_center_0110_ts.pt"/>
+    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/with_center_0110_ts.pt"/> -->
+    <!-- <arg name="orientation_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/model/with_center_0110_ts.pt"/> -->
+    <!-- <arg name="rel_pose_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/relposnet/model/with_center_0110_ts.pt"/> -->
+
+    <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/with_center_0110_ts.pt"/>
+    <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/with_center_0110_ts.pt"/>
+    <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/with_center_0110_ts.pt"/>
+
+    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/without_center_0110_ts.pt"/> -->
+    <!-- <arg name="orientation_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/model/without_center_0110_ts.pt"/> -->
+    <!-- <arg name="rel_pose_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/relposnet/model/without_center_0110_ts.pt"/> -->
 
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_perimeter_double_fullpower.pkl"/> -->
     <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
     <arg name="map_path" default="/home/amsl/hori/vision_nav/map/dkan_4th_perimeter_4th_fullpower.pkl"/>
-    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/>
+    <!-- <arg name="map_path" default="$(find relative_navigator)/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/> -->
+    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/3/g_4th_3_80.jpg"/>
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n1/0_175.jpg"/> -->
     <arg name="observed_image_topic_name" default="/grasscam/image_raw/compressed"/>
     <arg name="mode" default="rel_pose_label"/>
 

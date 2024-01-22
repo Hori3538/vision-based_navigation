@@ -123,6 +123,7 @@ class TopologicalMapper:
                 if graph.has_edge(tgt_node, src_node):
                     if graph.edges[tgt_node, src_node]['required'] == True: continue
                     if graph.edges[tgt_node, src_node]['weight'] < 1-same_conf: continue
+                    # else: graph.remove_edge(tgt_node, src_node)
 
                 graph.add_edge(src_node, tgt_node, weight=1-same_conf, required=False)
 

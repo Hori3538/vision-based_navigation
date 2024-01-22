@@ -7,3 +7,4 @@ logs/
 compile_commands.json
 .cache/
 topological_maps/
+model/
