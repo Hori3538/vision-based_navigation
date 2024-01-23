@@ -26,7 +26,7 @@ def main():
     parser.add_argument("-m", "--lr-min", type=float, default=1e-4)
     parser.add_argument("-b", "--batch-size", type=int, default=64)
     parser.add_argument("-w", "--num-workers", type=int, default=8)
-    parser.add_argument("-e", "--num-epochs", type=int, default=40)
+    parser.add_argument("-e", "--num-epochs", type=int, default=30)
     parser.add_argument("-g", "--gpu-device", type=int, default=0)
     parser.add_argument("-i", "--weight-dir", type=str, default="./weights")
     parser.add_argument("-o", "--log-dir", type=str, default="./logs")

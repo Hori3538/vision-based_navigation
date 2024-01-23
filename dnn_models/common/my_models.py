@@ -1,12 +1,14 @@
 import torch
 import torch.nn as nn
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
+# from torchvision.models import efficientnet_b0
 
 class CommonNet(nn.Module):
     def __init__(self, label_num: int) -> None:
         super(CommonNet, self).__init__()
 
         self.features = efficientnet_b0(weights=EfficientNet_B0_Weights.DEFAULT).features
+        # self.features = efficientnet_b0().features
 
         # 最初のCNN層のチャネル数を倍にする(concatした2枚の画像を入力するため)
         first_conv2d = self.features[0][0]
