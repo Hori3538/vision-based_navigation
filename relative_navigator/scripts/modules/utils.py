@@ -50,11 +50,11 @@ def tensor_to_cv_image(image_tensor: torch.Tensor) -> np.ndarray:
 
 @torch.no_grad()
 def infer(model: ScriptModule, device: str, 
-        src_img: torch.Tensor, tgt_img: torch.Tensor) -> torch.Tensor:
+        src_img: torch.Tensor, tgt_img: torch.Tensor, use_softmax: bool = True) -> torch.Tensor:
     model_output = model(src_img.to(device), tgt_img.to(device))
-    output_probs = F.softmax(model_output, 1)
+    if use_softmax: model_output = F.softmax(model_output, 1)
 
-    return output_probs
+    return model_output
 
 # T = TypeVar("T", Odometry, PoseStamped)
 # def msg_to_pose(msg: T) -> Pose:

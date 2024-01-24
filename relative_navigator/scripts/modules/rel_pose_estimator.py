@@ -78,10 +78,10 @@ class RelPoseEstimator:
             waypoint_img: torch.Tensor = compressed_image_to_tensor(waypoint.image,
                 (self._param.image_height, self._param.image_width))
             rel_pose: List[float] = infer(self._rel_pose_net, self._device,
-                    cast(torch.Tensor, self._observed_image), cast(torch.Tensor, waypoint_img)).squeeze().tolist()
+                    cast(torch.Tensor, self._observed_image), cast(torch.Tensor, waypoint_img),
+                    use_softmax=False).squeeze().tolist()
 
             if math.hypot(rel_pose[0], rel_pose[1]) > self._param.local_goal_min_th: break
-
 
         rel_pose_msg = PoseStamped()
         rel_pose_msg.header.stamp = rospy.Time.now()

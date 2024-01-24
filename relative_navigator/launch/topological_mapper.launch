@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/without_center_0110_ts.pt"/> -->
-    <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/with_center_0110_ts.pt"/>
-    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/not_include_center_full_ts.pt"/> -->
-    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/include_center_full_ts.pt"/> -->
+    <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/include_center_full_0122.pt"/> -->
+    <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/not_include_center_full_0122.pt"/>
 
     <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map"/>
-    <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/dkan_perimeter"/>
-    <!-- <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/center_perimeter"/> -->
-    <arg name="map_name" default="known_4_0122"/>
+    <!-- <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/dkan_perimeter"/> -->
+    <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/center_perimeter"/>
+    <!-- <arg name="map_name" default="known_4_actual"/> -->
+    <arg name="map_name" default="unknown_5_actual"/>
     <!-- <arg name="map_name" default="center_single_script_test_"/> -->
 
     <node pkg="relative_navigator" type="topological_mapper_node.py" name="topological_mapper" output="screen">

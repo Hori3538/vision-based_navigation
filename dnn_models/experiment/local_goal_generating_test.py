@@ -66,10 +66,6 @@ def main():
     data_num = test_dataset.__len__()
     print(f"data num: {data_num}")
 
-    proposed_mse_sum: torch.Tensor = torch.Tensor([0.0]*3)
-    rival_mse_sum: torch.Tensor = torch.Tensor([0.0]*3)
-    valid_data_count = 0
-
     proposed_mses: Optional[torch.Tensor] = None
     rival_mses: Optional[torch.Tensor] = None
 
@@ -94,21 +90,14 @@ def main():
                 proposed_mses = torch.unsqueeze(proposed_mse, 0)
             else:
                 proposed_mses = torch.cat([proposed_mses, torch.unsqueeze(proposed_mse, 0)], dim=0)
-            # print(f"relpos_net_output: {relpos_net_output}")
-            # print(f"proposed_relative_pose: {proposed_relative_pose}")
-            # print(f"relative_pose: {relative_pose}")
-            # print(f"rival mse: {loss_func(relpos_net_output, relative_pose)}")
-            # print(f"proposed mse: {loss_func(proposed_relative_pose, relative_pose)}")
-            # print()
 
-            proposed_mse_sum += proposed_mse
-            rival_mse_sum += rival_mse
-            valid_data_count += 1
-        print(f"shape: {proposed_mses.size()}")
-        # print(f"rmse avg {math.sqrt(mse_loss_sum / len(test_loader))}")
-        print(f"proposed rmse: {torch.sqrt(proposed_mse_sum / valid_data_count)}")
-        print(f"proposed rmse: {torch.mean(proposed_mses, dim=0)}")
-        print(f"rival rmse: {torch.sqrt(rival_mse_sum / valid_data_count)}")
+            if rival_mses == None:
+                rival_mses = torch.unsqueeze(rival_mse, 0)
+            else:
+                rival_mses = torch.cat([rival_mses, torch.unsqueeze(rival_mse, 0)], dim=0)
+
+        print(f"proposed rmse: {torch.sqrt(torch.mean(proposed_mses, dim=0))}")
+        print(f"rival rmse: {torch.sqrt(torch.mean(rival_mses, dim=0))}")
 
 
 if __name__ == "__main__":
