@@ -16,7 +16,7 @@ graph_localizer:
 
 graph_path_planner:
   hz: 5
-  waypoint_num: 5
+  waypoint_num: 10
   goal_th: 2 # 1 <= goal_th
 
 rel_pose_label_estimator:
@@ -54,4 +54,4 @@ local_path_planner:
   max_yawrate: 2.0
   max_accel: 10.0
   max_dyawrate: 6.0
-  collision_th: 0.8
+  collision_th: 0.35
