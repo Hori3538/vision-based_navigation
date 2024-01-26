@@ -201,13 +201,25 @@ class TopologicalMapTest:
         
         return total_dist
 
+    def _connect_check(self) -> None:
+        for start in self._graph.nodes:
+            for goal in self._graph.nodes:
+                try:
+                    shortest_path: List[str] = cast(List[str],
+                            nx.shortest_path(self._graph, source=start, target=goal,weight="weight"))
+                except:
+                    rospy.logwarn(f"No path between {start} and {goal}")
+
     def process(self) -> None:
 
-        # print(f"edges: {dict(self._graph.edges)}")
+        rospy.loginfo(f"node num: {self._graph.number_of_nodes()}")
+        rospy.loginfo(f"edge num: {self._graph.number_of_edges()}")
+        print(f"edges: {dict(self._graph.edges)}")
         rate = rospy.Rate(self._param.hz)
 
         marker_of_nodes_sphere, marker_of_nodes_text = self._generate_marker_of_nodes()
         marker_of_edges: Marker = self._generate_marker_of_edges()
+        self._connect_check()
 
         while not rospy.is_shutdown():
             self._visualize_nodes_sphere(marker_of_nodes_sphere)
@@ -218,7 +230,13 @@ class TopologicalMapTest:
             # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_20", "2_75")
             # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_85", "2_170")
             # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_145", "2_270")
-            shortest_path: Optional[List[str]] = self._calc_shortest_path("1_80", "3_90")
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_80", "3_90")
+
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_0", "1_165")
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_165", "1_0")
+            shortest_path: Optional[List[str]] = self._calc_shortest_path("2_177", "2_0")
+
+
             dist_of_path: float = self._calc_dist_of_path(shortest_path)
             print(f"dist of path: {dist_of_path}")
             shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)

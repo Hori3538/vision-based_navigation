@@ -23,6 +23,7 @@ rel_pose_label_estimator:
   observed_image_width: 1280
   observed_image_height: 720
   hz: 5
+  change_waypoint_th: 0.6
 
 rel_pose_estimator:
   observed_image_width: 1280

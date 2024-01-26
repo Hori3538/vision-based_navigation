@@ -5,12 +5,16 @@
     <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/include_center_full_0122.pt"/>
     <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/include_center_full_0122.pt"/>
 
-    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/dkan_perimeter/dkan_4th_perimeter_4th_fullpower.pkl"/> -->
+    <!-- <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/not_include_center_full_0122.pt"/> -->
+    <!-- <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/not_include_center_full_0122.pt"/> -->
+    <!-- <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/not_include_center_full_0122.pt"/> -->
+    <!--  -->
+    <!-- <arg name="map_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/relative_navigator/topological_maps/center_perimeter/unknown_5_actual.pkl"/> -->
     <arg name="map_path" default="/home/amsl/hori/vision_nav/map/known_4_actual.pkl"/>
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/> -->
-    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_1_185.jpg"/>
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_1_185.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/2/g_2_75.jpg"/> -->
-    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/3/g_2_170.jpg"/> -->
+    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/3/g_2_170.jpg"/>
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/4/g_2_270.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/5/g_3_90.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n1/0_175.jpg"/> -->

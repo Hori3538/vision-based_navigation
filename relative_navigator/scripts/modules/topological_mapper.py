@@ -6,6 +6,7 @@ from glob import iglob
 import networkx as nx
 import rospy
 import torch
+import torch.nn.functional as F
 
 from rosbag import Bag
 import rosnode
@@ -60,7 +61,7 @@ class TopologicalMapper:
         self._direction_net: torch.ScriptModule = torch.jit.load(self._param.direction_net_path).eval().to(self._device)
  
 
-        self._graph = nx.DiGraph()
+        self._graph: Optional[nx.DiGraph] = None
 
     def _are_different_enough(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
@@ -127,13 +128,14 @@ class TopologicalMapper:
 
                 graph.add_edge(src_node, tgt_node, weight=1-same_conf, required=False)
 
-        rospy.loginfo(f"{len(list(self._graph.edges))} edges is added")
+        rospy.loginfo(f"{len(list(graph.edges))} edges is added")
 
     def _add_minimum_required_edges(self, graph: Union[nx.DiGraph, nx.Graph]) -> None:
         for src_node, src_img in dict(graph.nodes.data('img')).items():
             bag_idx, src_node_idx = src_node.split('_')
             next_node: str = "_".join([bag_idx, str(int(src_node_idx) + 1)])
             if not next_node in graph: continue
+            if graph.has_edge(src_node, next_node): continue
 
             next_img: torch.Tensor = graph.nodes[next_node]['img']
             same_conf = self._pred_same_conf(src_img, next_img)
@@ -173,19 +175,33 @@ class TopologicalMapper:
 
     def process(self) -> None:
 
-        # add nodes process
+        # for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*.bag"))):
+        #     bag: Bag = Bag(bagfile_path)
+        #     self._add_nodes_from_bag(self._graph, bag, i)
+        #
+        # self._add_minimum_required_edges(self._graph)
+        # self._add_edges(self._graph)
+        # self._edge_pruning(self._graph)
+        # self._delete_node_without_cycle(self._graph)
+
         for i, bagfile_path in enumerate(iglob(os.path.join(self._param.bagfiles_dir, "*.bag"))):
             bag: Bag = Bag(bagfile_path)
-            self._add_nodes_from_bag(self._graph, bag, i)
+            mono_graph = nx.DiGraph()
+            self._add_nodes_from_bag(mono_graph, bag, i)
+            self._add_minimum_required_edges(mono_graph)
+            self._add_edges(mono_graph)
+            self._delete_node_without_cycle(mono_graph)
 
-        # self._graph = load_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name+".pkl"))
-        # add edges process
-        # self._graph.remove_edges_from(list(self._graph.edges))
-        self._add_minimum_required_edges(self._graph)
-        self._add_edges(self._graph)
-        self._edge_pruning(self._graph)
-        self._delete_node_without_cycle(self._graph)
-        save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", self._graph)
+            if self._graph == None: self._graph = mono_graph
+            else: self._graph = nx.union(self._graph, mono_graph)
+
+        self._add_edges(cast(nx.DiGraph, self._graph))
+        self._edge_pruning(cast(nx.DiGraph, self._graph))
+
+        rospy.loginfo(f"node num: {cast(nx.DiGraph, self._graph).number_of_nodes()}")
+        rospy.loginfo(f"edge num: {cast(nx.DiGraph, self._graph).number_of_edges()}")
+
+        save_topological_map(os.path.join(self._param.map_save_dir, self._param.map_name) + ".pkl", cast(nx.DiGraph, self._graph))
 
         os.makedirs(os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"), exist_ok=True)
         save_nodes_as_img(self._graph, os.path.join(self._param.map_save_dir, self._param.map_name+"_node_images"))

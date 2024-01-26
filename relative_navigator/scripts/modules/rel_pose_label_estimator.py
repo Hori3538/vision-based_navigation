@@ -6,6 +6,7 @@ from relative_navigator_msgs.msg import RelPoseLabel, NodeInfoArray
 
 from dataclasses import dataclass
 import torch
+import torch.nn.functional as F
 from typing import Optional, Tuple, cast
 
 from .utils import compressed_image_to_tensor, tensor_to_compressed_image, infer
@@ -18,6 +19,7 @@ class Param:
     observed_image_height: int
 
     hz: float
+    change_waypoint_th: float
 
     direction_net_path: str
     orientation_net_path: str
@@ -34,6 +36,7 @@ class RelPoseLabelEstimator:
                 cast(int, rospy.get_param("/common/observed_image_height")),
 
                 cast(float, rospy.get_param("~hz")),
+                cast(float, rospy.get_param("~change_waypoint_th")),
 
                 cast(str, rospy.get_param("~direction_net_path")),
                 cast(str, rospy.get_param("~orientation_net_path")),
@@ -76,14 +79,16 @@ class RelPoseLabelEstimator:
             waypoint_img: torch.Tensor = compressed_image_to_tensor(waypoint.image,
                 (self._param.image_height, self._param.image_width))
             direction_probs: torch.Tensor = infer(self._direction_net, self._device,
-                    cast(torch.Tensor, self._observed_image), cast(torch.Tensor, waypoint_img)).squeeze()
+                    cast(torch.Tensor, self._observed_image), cast(torch.Tensor, waypoint_img),
+                    use_softmax=False).squeeze()
+            direction_probs = F.softmax(direction_probs[:4], dim=0)
             orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,
                     cast(torch.Tensor, self._observed_image), cast(torch.Tensor, waypoint_img)).squeeze()
             direction_max_idx = direction_probs.max(0).indices
             orientation_max_idx = orientation_probs.max(0).indices
 
-            if direction_max_idx!=3 and orientation_max_idx!=1: break
-
+            # if direction_max_idx!=3 and orientation_max_idx!=1: break
+            if direction_probs[3] < self._param.change_waypoint_th and orientation_max_idx!=1: break
 
         rel_pose_label_msg = RelPoseLabel()
         rel_pose_label_msg.header.stamp = rospy.Time.now()
