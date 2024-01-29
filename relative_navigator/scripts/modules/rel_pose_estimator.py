@@ -53,17 +53,17 @@ class RelPoseEstimator:
 
         self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(
                 self._param.observed_image_topic_name,
-                CompressedImage, self._observed_image_callback, queue_size=1)
+                CompressedImage, self._observed_image_callback, queue_size=3)
 
         self._waypoint_img_pub: rospy.Publisher = rospy.Publisher("/rel_pose_label_estimator/waypoint_img/image_raw/compressed", CompressedImage,
-                queue_size=1, tcp_nodelay=True)
+                queue_size=3, tcp_nodelay=True)
 
         self._waypoints_sub: rospy.Subscriber = rospy.Subscriber(
                 "/graph_path_planner/waypoints",
-                NodeInfoArray, self._waypoints_callback, queue_size=1)
+                NodeInfoArray, self._waypoints_callback, queue_size=3)
 
         self._local_goal_pub_: rospy.Publisher = rospy.Publisher("/local_goal_generator/local_goal",
-                PoseStamped,  queue_size=1)
+                PoseStamped,  queue_size=3)
 
     def _observed_image_callback(self, msg: CompressedImage) -> None:
         self._observed_image = compressed_image_to_tensor(msg,

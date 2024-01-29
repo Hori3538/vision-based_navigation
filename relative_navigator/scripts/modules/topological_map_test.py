@@ -1,20 +1,29 @@
 from dataclasses import dataclass
 import math
+from glob import iglob
+import os
 from typing import Tuple, Union, Optional, List, cast
 
 import networkx as nx
 import rospy
+from rosbag import Bag
 
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, Pose, PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
+from nav_msgs.msg import Path
 
+from transformutils import get_array_2d_from_msg
 from .topological_map_io import load_topological_map
+from .utils import msg_to_pose
 
 @dataclass(frozen=True)
 class Param:
     hz: float
     
+    bagfiles_dir: str
     map_path: str
+    pose_topic_name: str
+    pose_topic_type: str
 
 class TopologicalMapTest:
     def __init__(self) -> None:
@@ -22,13 +31,20 @@ class TopologicalMapTest:
         self._param = Param(
             cast(float, rospy.get_param("~hz")),
 
+            cast(str, rospy.get_param("~bagfiles_dir")),
             cast(str, rospy.get_param("~map_path")),
+            cast(str, rospy.get_param("~pose_topic_name")),
+            cast(str, rospy.get_param("~pose_topic_type")),
         )
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._nodes_sphere_pub = rospy.Publisher("/topological_map_visualizer/nodes_sphere", Marker, queue_size=1, tcp_nodelay=True)
         self._nodes_text_pub = rospy.Publisher("/topological_map_visualizer/nodes_text", MarkerArray, queue_size=1, tcp_nodelay=True)
         self._edges_pub = rospy.Publisher("/topological_map_visualizer/edges", Marker, queue_size=1, tcp_nodelay=True)
         self._shortest_path_pub = rospy.Publisher("/graph_path_planner/shortest_path", Marker, queue_size=1, tcp_nodelay=True)
+
+        self._nearest_node_marker_pub = rospy.Publisher("/graph_localizer/nearest_node_marker", Marker, queue_size=3, tcp_nodelay=True)
+        self._goal_node_marker_pub = rospy.Publisher("/graph_localizer/goal_node_marker", Marker, queue_size=3, tcp_nodelay=True)
+        self._gt_pose_trajs_pub = rospy.Publisher("~gt_pose_trajs", Path, queue_size=3, tcp_nodelay=True)
 
     def _generate_marker_of_nodes(self) -> Tuple[Marker, MarkerArray]:
 
@@ -205,41 +221,145 @@ class TopologicalMapTest:
         for start in self._graph.nodes:
             for goal in self._graph.nodes:
                 try:
-                    shortest_path: List[str] = cast(List[str],
-                            nx.shortest_path(self._graph, source=start, target=goal,weight="weight"))
+                    cast(List[str], nx.shortest_path(self._graph, source=start, target=goal,weight="weight"))
                 except:
                     rospy.logwarn(f"No path between {start} and {goal}")
+
+    def _create_goal_marker_node(self, node_name: str) -> Marker:
+        marker = Marker()
+        marker.type = marker.SPHERE
+        marker.action = marker.ADD
+
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "goal_node"
+
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+
+        marker.scale.x = 1.0
+        marker.scale.y = 1.0
+        marker.scale.z = 1.0
+
+        x, y, _ = self._graph.nodes[node_name]['pose']
+        marker.pose.position.x, marker.pose.position.y = x, y
+        marker.pose.orientation.w = 1
+        
+        return marker
+
+    def _create_nearest_marker_node(self, node_name: str) -> Marker:
+        marker = Marker()
+        marker.type = marker.SPHERE
+        marker.action = marker.ADD
+
+        marker.header.frame_id = "map"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "nearest_node"
+
+        marker.color.a = 1.0
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+
+        marker.scale.x = 1.0
+        marker.scale.y = 1.0
+        marker.scale.z = 1.0
+
+        x, y, _ = self._graph.nodes[node_name]['pose']
+        marker.pose.position.x, marker.pose.position.y = x, y
+        marker.pose.orientation.w = 1
+        
+        return marker
+
+    def _calc_gt_pose_traj_from_bag(self, bag: Bag, bag_id: int) -> Path:
+
+        rospy.loginfo(f"start calculating gt pose trajectory of bag id: {bag_id}")
+        pose: Optional[Pose] = None
+        traj = Path()
+        traj.header.stamp = rospy.Time.now()
+        traj.header.frame_id = "map"
+
+        for topic, msg, _ in bag.read_messages(
+                topics=[self._param.pose_topic_name]):
+            if topic == self._param.pose_topic_name:
+                pose = msg_to_pose(msg, self._param.pose_topic_type)
+            if pose is None: continue
+            
+                # pose_list = get_array_2d_from_msg(pose)
+            pose_stamped = PoseStamped()
+            pose_stamped.pose = pose
+            traj.poses.append(pose_stamped)
+
+            pose = None
+        rospy.loginfo(f"bag id: {bag_id} is finished")
+        return traj
+
+    def _calc_gt_pose_trajs_from_bag_dir(self, bag_dir: str) -> List[Path]:
+        trajs: List[Path] = []
+        for i, bagfile_path in enumerate(iglob(os.path.join(bag_dir, "*.bag"))):
+            rospy.loginfo(f"bagfile_path is {bagfile_path}")
+            bag: Bag = Bag(bagfile_path)
+            traj = self._calc_gt_pose_traj_from_bag(bag, i)
+            trajs.append(traj)
+
+        return trajs
+
+    def _publish_gt_pose_trajs(self, publisher: rospy.Publisher, gt_pose_trajs: List[Path]) -> None:
+        for traj in gt_pose_trajs: publisher.publish(traj)
+
+    # def _search_nearest_node(self, pose_list: List[float], graph: Union[nx.DiGraph, nx.Graph]) -> str:
+
+
 
     def process(self) -> None:
 
         rospy.loginfo(f"node num: {self._graph.number_of_nodes()}")
         rospy.loginfo(f"edge num: {self._graph.number_of_edges()}")
-        print(f"edges: {dict(self._graph.edges)}")
+        # print(f"edges: {dict(self._graph.edges)}")
         rate = rospy.Rate(self._param.hz)
 
         marker_of_nodes_sphere, marker_of_nodes_text = self._generate_marker_of_nodes()
         marker_of_edges: Marker = self._generate_marker_of_edges()
-        self._connect_check()
+        # self._connect_check()
+
+        start_node, goal_node = "1_128", "1_185" # 1
+        start_node_marker: Marker = self._create_nearest_marker_node(start_node)
+        goal_node_marker: Marker = self._create_goal_marker_node(goal_node)
+        shortest_path: Optional[List[str]] = self._calc_shortest_path(start_node, goal_node)
+
+        dist_of_path: float = self._calc_dist_of_path(shortest_path)
+        print(f"dist of path: {dist_of_path}")
+        shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)
+
+        gt_pose_trajs: List[Path] = self._calc_gt_pose_trajs_from_bag_dir(self._param.bagfiles_dir)
 
         while not rospy.is_shutdown():
             self._visualize_nodes_sphere(marker_of_nodes_sphere)
             self._visualize_edges(marker_of_edges)
             self._nodes_text_pub.publish(marker_of_nodes_text)
 
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_128", "1_185")
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_20", "2_75")
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_85", "2_170")
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_145", "2_270")
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_80", "3_90")
+            self._nearest_node_marker_pub.publish(start_node_marker)
+            self._goal_node_marker_pub.publish(goal_node_marker)
 
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_0", "1_165")
-            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_165", "1_0")
-            shortest_path: Optional[List[str]] = self._calc_shortest_path("2_177", "2_0")
+            self._publish_gt_pose_trajs(self._gt_pose_trajs_pub, gt_pose_trajs)
 
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_20", "2_75")#old
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("3_140", "3_210")# 2
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("2_85", "2_170")# 3
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_145", "2_270")# 4
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_80", "3_90")# 5
 
-            dist_of_path: float = self._calc_dist_of_path(shortest_path)
-            print(f"dist of path: {dist_of_path}")
-            shortest_path_marker: Marker = self._generate_marker_of_path(shortest_path)
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("1_110", "4_81")# 1
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_5", "0_42")# 2
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("3_55", "0_10")# 3
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("0_60", "3_146")# 4
+            # shortest_path: Optional[List[str]] = self._calc_shortest_path("3_80", "2_150")# 5
+            # shortest_path: Optional[List[str]] = ["3_"+str(i) for i in range(80, 136)]
+            # shortest_path: Optional[List[str]] = ["0_"+str(i) for i in range(60, 121)]
+            # shortest_path: Optional[List[str]] = ["3_"+str(i) for i in range(55, 120)]
+
             self._visualize_path(shortest_path_marker)
 
             rate.sleep()

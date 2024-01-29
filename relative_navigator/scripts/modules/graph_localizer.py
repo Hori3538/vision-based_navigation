@@ -64,21 +64,21 @@ class GraphLocalizer:
         self._observed_image: Optional[torch.Tensor] = None
         self._observed_image_sub: rospy.Subscriber = rospy.Subscriber(
                 self._param.observed_image_topic_name,
-                CompressedImage, self._observed_image_callback, queue_size=1)
+                CompressedImage, self._observed_image_callback, queue_size=3)
 
         self._nearest_node_img_pub = rospy.Publisher("~nearest_node_img/image_raw/compressed",
-                CompressedImage, queue_size=1, tcp_nodelay=True)
+                CompressedImage, queue_size=3, tcp_nodelay=True)
         self._goal_img_pub = rospy.Publisher("~goal_img/image_raw/compressed",
-                CompressedImage, queue_size=1, tcp_nodelay=True)
+                CompressedImage, queue_size=3, tcp_nodelay=True)
         self._goal_node_img_pub = rospy.Publisher("~goal_node_img/image_raw/compressed",
-                CompressedImage, queue_size=1, tcp_nodelay=True)
+                CompressedImage, queue_size=3, tcp_nodelay=True)
 
 
-        self._nearest_node_marker_pub = rospy.Publisher("~nearest_node_marker", Marker, queue_size=1, tcp_nodelay=True)
-        self._goal_node_marker_pub = rospy.Publisher("~goal_node_marker", Marker, queue_size=1, tcp_nodelay=True)
+        self._nearest_node_marker_pub = rospy.Publisher("~nearest_node_marker", Marker, queue_size=3, tcp_nodelay=True)
+        self._goal_node_marker_pub = rospy.Publisher("~goal_node_marker", Marker, queue_size=3, tcp_nodelay=True)
 
-        self._nearest_node_id_pub = rospy.Publisher("~nearest_node_id", String, queue_size=1, tcp_nodelay=True)
-        self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=1, tcp_nodelay=True)
+        self._nearest_node_id_pub = rospy.Publisher("~nearest_node_id", String, queue_size=3, tcp_nodelay=True)
+        self._goal_node_id_pub = rospy.Publisher("~goal_node_id", String, queue_size=3, tcp_nodelay=True)
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
         self._before_nearest_nodes: Optional[Dict[str, float]] = None

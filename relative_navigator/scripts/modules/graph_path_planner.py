@@ -50,13 +50,13 @@ class GraphPathPlanner:
         self._nearest_node_id: Optional[str] = None
 
         self._goal_node_id_sub: rospy.Subscriber = rospy.Subscriber("/graph_localizer/goal_node_id",
-                String, self._goal_node_callback, queue_size=1)
+                String, self._goal_node_callback, queue_size=3)
         self._nearest_node_id_sub: rospy.Subscriber = rospy.Subscriber("/graph_localizer/nearest_node_id",
-                String, self._nearest_node_callback, queue_size=1)
+                String, self._nearest_node_callback, queue_size=3)
 
-        self._waypoints_pub = rospy.Publisher("~waypoints", NodeInfoArray, queue_size=1, tcp_nodelay=True)
-        self._shortest_path_pub = rospy.Publisher("~shortest_path", Marker, queue_size=1, tcp_nodelay=True)
-        self._reaching_goal_flag_pub = rospy.Publisher("~reaching_goal_flag", Bool, queue_size=1, tcp_nodelay=True)
+        self._waypoints_pub = rospy.Publisher("~waypoints", NodeInfoArray, queue_size=3, tcp_nodelay=True)
+        self._shortest_path_pub = rospy.Publisher("~shortest_path", Marker, queue_size=3, tcp_nodelay=True)
+        self._reaching_goal_flag_pub = rospy.Publisher("~reaching_goal_flag", Bool, queue_size=3, tcp_nodelay=True)
 
         self._graph: Union[nx.DiGraph, nx.Graph] = load_topological_map(self._param.map_path)
 

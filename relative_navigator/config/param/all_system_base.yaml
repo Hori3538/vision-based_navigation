@@ -38,7 +38,7 @@ local_goal_generator:
   bin_step_degree: 25
 
 local_path_planner:
-  hz: 10
+  hz: 5
   goal_dist_th: 0.4
   goal_yaw_th: 0.16
   predict_dt: 0.1

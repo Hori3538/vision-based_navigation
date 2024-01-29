@@ -9,8 +9,8 @@ namespace relative_navigator
         private_nh.param<int>("bin_num", param_.bin_num, 3);
         private_nh.param<float>("bin_step_degree", param_.bin_step_degree, 25);
 
-        rel_pose_label_sub_ = nh.subscribe<relative_navigator_msgs::RelPoseLabel>("/rel_pose_label_estimator/rel_pose_label", 10, &LocalGoalGenerator::rel_pose_label_callback, this);
-        local_goal_pub_ = private_nh.advertise<geometry_msgs::PoseStamped>("local_goal", 1);
+        rel_pose_label_sub_ = nh.subscribe<relative_navigator_msgs::RelPoseLabel>("/rel_pose_label_estimator/rel_pose_label", 3, &LocalGoalGenerator::rel_pose_label_callback, this);
+        local_goal_pub_ = private_nh.advertise<geometry_msgs::PoseStamped>("local_goal", 3);
     }
 
     void LocalGoalGenerator::rel_pose_label_callback(const relative_navigator_msgs::RelPoseLabelConstPtr &msg)

@@ -24,15 +24,15 @@ namespace relative_navigator
         private_nh.param<std::string>("odom_topic_name", param_.odom_topic_name, "/odom");
         private_nh.param<std::string>("scan_topic_name", param_.scan_topic_name, "/scan");
 
-        local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 1, &LocalPathPlanner::local_goal_callback, this);
-        odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 1, &LocalPathPlanner::odometry_callback, this);
-        scan_sub_ = nh.subscribe<sensor_msgs::LaserScan>(param_.scan_topic_name, 1, &LocalPathPlanner::scan_callback, this);
-        reaching_goal_flag_sub_ = nh.subscribe<std_msgs::Bool>("/graph_path_planner/reaching_goal_flag", 1, &LocalPathPlanner::reaching_goal_flag_callback, this);
+        local_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/local_goal_generator/local_goal", 3, &LocalPathPlanner::local_goal_callback, this);
+        odometry_sub_ = nh.subscribe<nav_msgs::Odometry>(param_.odom_topic_name, 3, &LocalPathPlanner::odometry_callback, this);
+        scan_sub_ = nh.subscribe<sensor_msgs::LaserScan>(param_.scan_topic_name, 3, &LocalPathPlanner::scan_callback, this);
+        reaching_goal_flag_sub_ = nh.subscribe<std_msgs::Bool>("/graph_path_planner/reaching_goal_flag", 3, &LocalPathPlanner::reaching_goal_flag_callback, this);
 
-        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 1);
-        control_input_pub_ = nh.advertise<geometry_msgs::Twist>("/local_path/cmd_vel", 1);
-        best_local_path_pub_ = nh.advertise<nav_msgs::Path>("/best_local_path", 1);
-        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("/candidate_local_path", 1);
+        local_goal_pub_ = nh.advertise<geometry_msgs::PoseStamped>("local_path_planner/local_goal", 3);
+        control_input_pub_ = nh.advertise<geometry_msgs::Twist>("/local_path/cmd_vel", 3);
+        best_local_path_pub_ = nh.advertise<nav_msgs::Path>("/best_local_path", 3);
+        candidate_local_path_pub_ = nh.advertise<nav_msgs::Path>("/candidate_local_path", 3);
     }
 
     void LocalPathPlanner::local_goal_callback(const geometry_msgs::PoseStampedConstPtr &msg)
