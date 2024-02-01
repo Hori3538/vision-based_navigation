@@ -136,6 +136,8 @@ class TopologicalMapVisualizer:
 
         # print(f"edges: {dict(self._graph.edges)}")
         rate = rospy.Rate(self._param.hz)
+        rospy.loginfo(f"node num: {self._graph.number_of_nodes()}")
+        rospy.loginfo(f"edge num: {self._graph.number_of_edges()}")
 
         marker_of_nodes_sphere, marker_of_nodes_text = self._generate_marker_of_nodes()
         marker_of_edges: Marker = self._generate_marker_of_edges()

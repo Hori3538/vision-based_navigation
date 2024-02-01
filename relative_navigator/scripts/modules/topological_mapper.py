@@ -24,6 +24,7 @@ class Param:
     image_height: int
 
     direction_net_path: str
+    orientation_net_path: str
     bagfiles_dir: str
     map_save_dir: str
     map_name: str
@@ -49,6 +50,7 @@ class TopologicalMapper:
             cast(int, rospy.get_param("~image_height", 224)),
 
             cast(str, rospy.get_param("~direction_net_path")),
+            cast(str, rospy.get_param("~orientation_net_path")),
             cast(str, rospy.get_param("~bagfiles_dir")),
             cast(str, rospy.get_param("~map_save_dir")),
             cast(str, rospy.get_param("~map_name")),
@@ -70,6 +72,7 @@ class TopologicalMapper:
         self._device: str = "cuda" if torch.cuda.is_available() else "cpu"
 
         self._direction_net: torch.ScriptModule = torch.jit.load(self._param.direction_net_path).eval().to(self._device)
+        self._orientation_net: torch.ScriptModule = torch.jit.load(self._param.orientation_net_path).eval().to(self._device)
  
 
         # self._graph = nx.DiGraph()
@@ -78,7 +81,9 @@ class TopologicalMapper:
     def _are_different_enough(self, src_img: torch.Tensor, tgt_img: torch.Tensor) -> bool:
 
         direction_probs: torch.Tensor = infer(self._direction_net, self._device,src_img, tgt_img).squeeze()
+        orientation_probs: torch.Tensor = infer(self._orientation_net, self._device,src_img, tgt_img).squeeze()
         if direction_probs[3] < self._param.divide_conf_th: return True
+        if orientation_probs[1] < self._param.divide_conf_th: return True
 
         return False
 
@@ -184,7 +189,7 @@ class TopologicalMapper:
                 dist: float = math.hypot(tgt_pose[0] - src_pose[0], tgt_pose[1] - src_pose[1])
                 if dist > self._param.connect_gt_dist_th: continue
 
-                graph.add_edge(src_node, tgt_node, dist=dist, required=False)
+                graph.add_edge(src_node, tgt_node, weight=dist, required=False)
 
         rospy.loginfo(f"{len(list(graph.edges))} edges is added")
 
