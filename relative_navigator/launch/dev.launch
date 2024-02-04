@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
-    <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/include_center_full_0122.pt"/>
-    <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/include_center_full_0122.pt"/>
-    <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/include_center_full_0122.pt"/>
+    <!-- <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/include_center_full_0122.pt"/> -->
+    <!-- <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/include_center_full_0122.pt"/> -->
+    <!-- <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/include_center_full_0122.pt"/> -->
 
-    <!-- <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/not_include_center_full_0122.pt"/> -->
-    <!-- <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/not_include_center_full_0122.pt"/> -->
-    <!-- <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/not_include_center_full_0122.pt"/> -->
+    <arg name="direction_net_path" default="/home/amsl/hori/vision_nav/models/direction/not_include_center_full_0122.pt"/>
+    <arg name="orientation_net_path" default="/home/amsl/hori/vision_nav/models/orientation/not_include_center_full_0122.pt"/>
+    <arg name="rel_pose_net_path" default="/home/amsl/hori/vision_nav/models/relpose/not_include_center_full_0122.pt"/>
     <!--  -->
-    <!-- <arg name="map_path" default="/home/amsl/hori/vision_nav/map/unknown_5_actual.pkl"/> -->
-    <arg name="map_path" default="/home/amsl/hori/vision_nav/map/known_4_actual.pkl"/>
+    <arg name="map_path" default="/home/amsl/hori/vision_nav/map/unknown_5_actual.pkl"/>
+    <!-- <arg name="map_path" default="/home/amsl/hori/vision_nav/map/known_4_actual.pkl"/> -->
+    <!-- <arg name="map_path" default="/home/amsl/hori/vision_nav/map/without_backlight.pkl"/> -->
+    
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_4th_1_166.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/1/g_1_185.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/2/g_2_75.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/2_re/g_3_210.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/3/g_2_170.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/4/g_2_270.jpg"/> -->
-    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/5/g_3_90.jpg"/>
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/5/g_3_90.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n1/g_4_81.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n2/g_0_42.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n3/g_0_10.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n3_re/g_3_59.jpg"/> -->
+    <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n3_re_re/g_2_70.jpg"/>
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n4/g_3_146.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n4_re/g_2_50.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n4_re_re/g_0_12.jpg"/> -->
     <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n5/g_2_150.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n5_re/g_2_140.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/n6/g_2_145.jpg"/> -->
+    <!-- <arg name="goal_img_path" default="/home/amsl/hori/vision_nav/goal_imgs/without_backlight/g_0_80.jpg"/> -->
 
     <arg name="observed_image_topic_name" default="/grasscam/image_raw/compressed"/>
     <arg name="mode" default="rel_pose_label"/>

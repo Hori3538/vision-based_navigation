@@ -56,12 +56,6 @@ def infer(model: ScriptModule, device: str,
 
     return model_output
 
-# T = TypeVar("T", Odometry, PoseStamped)
-# def msg_to_pose(msg: T) -> Pose:
-#     if isinstance(msg, Odometry): return msg.pose.pose
-#     if isinstance(msg, PoseStamped): return msg.pose
-#     print("hoge")
-
 def msg_to_pose(msg: Any, type: str) -> Pose:
     if type=="Odometry" or type=="PoseWithCovarianceStamped": return msg.pose.pose
     if type == "PoseStamped": return msg.pose

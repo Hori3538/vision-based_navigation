@@ -431,12 +431,11 @@ class TopologicalMapTest:
 
         return progress_rate
 
-    def _calc_max_progress_rate_from_bag(self, bag: Bag, gt_graph: nx.Graph, goal_coord: Tuple[float, float]) -> float:
+    def _calc_max_progress_rate_from_bag(self, bag: Bag, gt_graph: nx.Graph, goal_coord: float) -> float:
 
         pose: Optional[Pose] = None
 
         initial_coord: Optional[Tuple[float, float]] = None
-
         max_progress_rate: float = 0
 
         for topic, msg, _ in bag.read_messages(
@@ -445,22 +444,10 @@ class TopologicalMapTest:
                 pose = msg_to_pose(msg, self._param.pose_topic_type)
             if pose is None: continue
             
-            current_coord: Tuple[float, float] = pose.position.x, pose.position.y
-            if initial_coord is None: initial_coord = current_coord
-            progress_rate: float = self._calc_progress_rate(gt_graph, initial_coord, goal_coord,
-                    current_coord)
-            if progress_rate > max_progress_rate: max_progress_rate = progress_rate
+            pose_stamped = PoseStamped()
+            pose_stamped.pose = pose
 
             pose = None
-
-        return max_progress_rate
-
-    def _calc_max_progress_rate_from_bag_dir(self, bag_dir: str, gt_graph: nx.Graph, goal_coord: Tuple[float, float]) -> None:
-        for i, bagfile_path in enumerate(iglob(os.path.join(bag_dir, "*.bag"))):
-            rospy.loginfo(f"bagfile_path {bagfile_path} start")
-            bag: Bag = Bag(bagfile_path)
-            max_progress_rate = self._calc_max_progress_rate_from_bag(bag, gt_graph, goal_coord)
-            rospy.loginfo(f"max_progress_rate: {max_progress_rate}")
 
     def process(self) -> None:
 
@@ -498,7 +485,6 @@ class TopologicalMapTest:
         # without backlight
         # start_node, goal_node = "0_0", "0_80" # 
 
-        goal_node_coord: Tuple[float, float] = self._get_coord_of_node(self._graph, goal_node)
         gt_start_node = self._node_transform(start_node, self._graph, self._gt_graph)
         gt_goal_node = self._node_transform(goal_node, self._graph, self._gt_graph)
 
@@ -519,9 +505,7 @@ class TopologicalMapTest:
         # gt_pose_trajs: List[Path] = self._calc_gt_pose_trajs_from_bag_dir(self._param.bagfiles_dir)
         gt_pose_trajs: List[Path] = [Path()]
 
-        # self._write_localize_error_from_bag_dir(self._param.bagfiles_dir)
-        self._calc_max_progress_rate_from_bag_dir(self._param.bagfiles_dir, self._gt_graph, goal_node_coord)
-
+        self._write_localize_error_from_bag_dir(self._param.bagfiles_dir)
         while not rospy.is_shutdown():
             self._visualize_nodes_sphere(marker_of_nodes_sphere)
             self._visualize_edges(marker_of_edges)
