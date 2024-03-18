@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from my_models import DirectionNet, OrientationNet, RelPosNet
 from dataset_for_directionnet import DatasetForDirectionNet
 from dnn_utils import fix_seed, image_tensor_cat_and_show
+import dnn_utils
 
 def calc_weighted_mean_angle(angle_for_each_label: List[float], orientation_net_output: torch.Tensor) -> float:
     orientation_net_probs: List[float] = F.softmax(orientation_net_output, dim=0).tolist()
@@ -62,6 +63,7 @@ def main():
     
     # loss_func = torch.nn.MSELoss()
     loss_func = torch.nn.MSELoss(reduction='none')
+    loss_func2 = torch.nn.MSELoss(reduction='mean')
 
     data_num = test_dataset.__len__()
     print(f"data num: {data_num}")
@@ -69,10 +71,15 @@ def main():
     proposed_mses: Optional[torch.Tensor] = None
     rival_mses: Optional[torch.Tensor] = None
 
+    proposed_position_mses: Optional[torch.Tensor] = None
+    rival_position_mses: Optional[torch.Tensor] = None
+
+    transform = dnn_utils.test_transform
     angle_for_each_label: List[float] = [math.radians(25), 0, -math.radians(25)]
     with torch.no_grad():
         for data in test_loader:
             src_image, dst_image, _, _, relative_pose = data
+            # src_image, dst_image = transform(src_image), transform(dst_image)
             relative_pose = relative_pose.squeeze()
             if is_far(relative_pose): continue
 
@@ -86,6 +93,18 @@ def main():
             proposed_mse = loss_func(proposed_relative_pose, relative_pose)
             rival_mse = loss_func(relpos_net_output, relative_pose)
 
+            # proposed_mse2 = torch.sqrt(loss_func2(proposed_relative_pose[:, :2], relative_pose[:, :2]))
+            # rival_mse2 = torch.sqrt(loss_func2(relpos_net_output[:, :2], relative_pose[:, :2]))
+            proposed_mse2 = torch.sqrt(loss_func2(proposed_relative_pose[:2], relative_pose[:2]))
+            rival_mse2 = torch.sqrt(loss_func2(relpos_net_output[:2], relative_pose[:2]))
+
+            # proposed_position_error = math.hypot(weighted_mean_x-relative_pose[0],
+            #                                      weighted_mean_y-relative_pose[1])
+            # proposed_position_errors.append(proposed_position_error)
+            # rival_position_error = math.hypot(relpos_net_output[0]-relative_pose[0],
+            #                                   relpos_net_output[1]-relative_pose[1])
+            # rival_position_errors.append(rival_position_error)
+
             if proposed_mses == None:
                 proposed_mses = torch.unsqueeze(proposed_mse, 0)
             else:
@@ -96,8 +115,24 @@ def main():
             else:
                 rival_mses = torch.cat([rival_mses, torch.unsqueeze(rival_mse, 0)], dim=0)
 
+            if proposed_position_mses == None:
+                proposed_position_mses = torch.unsqueeze(proposed_mse2, 0)
+            else:
+                proposed_position_mses = torch.cat([proposed_position_mses, torch.unsqueeze(proposed_mse2, 0)], dim=0)
+
+            if rival_position_mses == None:
+                rival_position_mses = torch.unsqueeze(rival_mse2, 0)
+            else:
+                rival_position_mses = torch.cat([rival_position_mses, torch.unsqueeze(rival_mse2, 0)], dim=0)
+
         print(f"proposed rmse: {torch.sqrt(torch.mean(proposed_mses, dim=0))}")
         print(f"rival rmse: {torch.sqrt(torch.mean(rival_mses, dim=0))}")
+        # print(f"proposed_position_me: {sum(proposed_position_errors) / len(proposed_position_errors)}")
+        # print(f"rival_position_me: {sum(rival_position_errors) / len(rival_position_errors)}")
+
+        print(f"proposed position rmse: {torch.mean(proposed_position_mses, dim=0)}")
+        print(f"rival position rmse: {torch.mean(rival_position_mses, dim=0)}")
+
 
 
 if __name__ == "__main__":

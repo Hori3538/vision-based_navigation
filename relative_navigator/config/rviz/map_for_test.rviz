@@ -9,7 +9,7 @@ Panels:
         - /Grid1
         - /Path1
       Splitter Ratio: 0.49705880880355835
-    Tree Height: 70
+    Tree Height: 371
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -58,7 +58,7 @@ Visualization Manager:
       Marker Topic: /topological_map_visualizer/edges
       Name: Marker
       Namespaces:
-        edges: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -75,7 +75,7 @@ Visualization Manager:
       Marker Topic: /topological_map_visualizer/nodes_sphere
       Name: Marker
       Namespaces:
-        nodes_sphere: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -83,7 +83,7 @@ Visualization Manager:
       Marker Topic: /topological_map_visualizer/nodes_text
       Name: MarkerArray
       Namespaces:
-        nodes_text: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -91,7 +91,7 @@ Visualization Manager:
       Marker Topic: /graph_localizer/nearest_node_marker
       Name: Marker
       Namespaces:
-        nearest_node: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -99,7 +99,7 @@ Visualization Manager:
       Marker Topic: /graph_localizer/goal_node_marker
       Name: Marker
       Namespaces:
-        goal_node: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -107,7 +107,7 @@ Visualization Manager:
       Marker Topic: /graph_path_planner/shortest_path
       Name: Marker
       Namespaces:
-        path: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Image

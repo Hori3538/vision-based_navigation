@@ -6,6 +6,7 @@ import torch
 import random
 import time
 import copy
+from dnn_utils import image_tensor_cat_and_show
 import dnn_utils
 
 from training_data import TrainingData
@@ -92,7 +93,7 @@ def test() -> None:
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, drop_last=True,
                             num_workers=os.cpu_count(), pin_memory=True)
 
-    transform = dnn_utils.transform
+    transform = dnn_utils.test_transform
     DatasetForDirectionNet.equalize_label_counts(dataset)
     data_len = dataset.__len__()
     print(f"data len: {data_len}")
@@ -106,17 +107,18 @@ def test() -> None:
 
     for batch in dataloader:
         data = TrainingData(*batch)
-        # image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
-        image_tensor = torch.cat((transform(data.src_image[0]), transform(data.dst_image[0])), dim=2).squeeze()
+        image_tensor = torch.cat((data.src_image[0], data.dst_image[0]), dim=2).squeeze()
+        # image_tensor = torch.cat((transform(data.src_image[0]), transform(data.dst_image[0])), dim=2).squeeze()
         image = (image_tensor*255).permute(1, 2, 0).cpu().numpy().astype(np.uint8)
-        cv2.imshow("images", image)
+        # cv2.imshow("images", image)
         print(f"direction_label: {data.direction_label}")
         print(f"relative_pose: {data.relative_pose}")
         print()
-        key = cv2.waitKey(0)
-        if key == ord("q") or key == ord("c"):
-            break
-        cv2.destroyAllWindows()
+        # key = cv2.waitKey(0)
+        # if key == ord("q") or key == ord("c"):
+        #     break
+        # cv2.destroyAllWindows()
+        image_tensor_cat_and_show(data.src_image[0],transform(data.src_image[0]), "/home/amsl/Pictures")
 
 if __name__ == "__main__":
     test()

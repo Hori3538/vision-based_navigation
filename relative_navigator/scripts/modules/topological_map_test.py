@@ -461,11 +461,28 @@ class TopologicalMapTest:
             bag: Bag = Bag(bagfile_path)
             max_progress_rate = self._calc_max_progress_rate_from_bag(bag, gt_graph, goal_coord)
             rospy.loginfo(f"max_progress_rate: {max_progress_rate}")
+    
+    def _calc_error_edge_rate(self, graph: nx.DiGraph) -> float:
+        error_edge_num = 0
+        error_th: float = 5.0
+
+        for src_node, tgt_node in graph.edges:
+            src_x = graph.nodes[src_node]["pose"][0]
+            src_y = graph.nodes[src_node]["pose"][1]
+
+            tgt_x = graph.nodes[tgt_node]["pose"][0]
+            tgt_y = graph.nodes[tgt_node]["pose"][1]
+
+            dist = math.hypot(tgt_x-src_x, tgt_y-src_y)
+            if dist > error_th: error_edge_num += 1
+
+        return error_edge_num / graph.number_of_edges()
 
     def process(self) -> None:
 
         rospy.loginfo(f"node num: {self._graph.number_of_nodes()}")
         rospy.loginfo(f"edge num: {self._graph.number_of_edges()}")
+        rospy.loginfo(f"error_edge_rate: {self._calc_error_edge_rate(self._graph)}")
         # print(f"edges: {dict(self._graph.edges)}")
         rate = rospy.Rate(self._param.hz)
 
@@ -473,7 +490,7 @@ class TopologicalMapTest:
         marker_of_edges: Marker = self._generate_marker_of_edges()
         # self._connect_check()
 
-        start_node, goal_node = "1_128", "1_185" # 1
+        # start_node, goal_node = "1_128", "1_185" # 1
         # start_node, goal_node = "2_20", "2_75" # 2 old
         # start_node, goal_node = "3_140", "3_210" # 2_re
         # start_node, goal_node = "2_85", "2_170" # 3
@@ -482,7 +499,7 @@ class TopologicalMapTest:
 
         # new
         # start_node, goal_node = "1_110", "4_81" # 1
-        # start_node, goal_node = "0_5", "0_42" # 2 
+        start_node, goal_node = "0_5", "0_42" # 2 
         # start_node, goal_node = "3_55", "0_10" # 3 old
         # start_node, goal_node = "3_18", "3_59" # 3 re
         # start_node, goal_node = "0_60", "3_146" # 4 old
@@ -519,7 +536,7 @@ class TopologicalMapTest:
         # gt_pose_trajs: List[Path] = self._calc_gt_pose_trajs_from_bag_dir(self._param.bagfiles_dir)
         gt_pose_trajs: List[Path] = [Path()]
 
-        # self._write_localize_error_from_bag_dir(self._param.bagfiles_dir)
+        self._write_localize_error_from_bag_dir(self._param.bagfiles_dir)
         self._calc_max_progress_rate_from_bag_dir(self._param.bagfiles_dir, self._gt_graph, goal_node_coord)
 
         while not rospy.is_shutdown():

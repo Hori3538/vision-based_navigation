@@ -40,6 +40,7 @@ def main():
 
     data_num = test_dataset.__len__()
     print(f"data num: {data_num}")
+    transform = dnn_utils.transform
 
     label_num: int = len(direction_label_counts)
     with torch.no_grad():

@@ -5,17 +5,18 @@
     <!-- <arg name="direction_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/directionnet/model/not_include_center_full_0122.pt"/> -->
     <!-- <arg name="orientation_net_path" default="/home/amsl/catkin_ws/src/vision-based_navigation/dnn_models/orientationnet/model/not_include_center_full_0122.pt"/> -->
 
-    <!-- <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map/unknown"/> -->
-    <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map/without_backlight"/>
+    <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map/unknown"/>
+    <!-- <arg name="bagfiles_dir" default="/share/private/27th/horiike/bag/abstrelposnet/for_map/without_backlight"/> -->
     <!-- <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/dkan_perimeter"/> -->
-    <!-- <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/center_perimeter"/> -->
-    <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/backlight"/>
+    <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/center_perimeter"/>
+    <!-- <arg name="map_save_dir" default="$(find relative_navigator)/topological_maps/backlight"/> -->
     <!-- <arg name="map_name" default="known_4_gt_pose"/> -->
     <!-- <arg name="map_name" default="unknown_5_gt_pose"/> -->
     <!-- <arg name="map_name" default="known_4_actual_re_re"/> -->
     <!-- <arg name="map_name" default="unknown_5_actual_re"/> -->
+    <arg name="map_name" default="unknown_5_for_val2"/>
     <!-- <arg name="map_name" default="without_backlight"/> -->
-    <arg name="map_name" default="without_backlight_gt_pose"/>
+    <!-- <arg name="map_name" default="without_backlight_gt_pose"/> -->
 
     <node pkg="relative_navigator" type="topological_mapper_node.py" name="topological_mapper" output="screen">
         <rosparam subst_value="True">
@@ -31,14 +32,14 @@
             pose_topic_name: "/localized_pose"
             pose_topic_type: "PoseWithCovarianceStamped"
 
-            use_model: 0
+            use_model: 1
 
             divide_conf_th: 0.7
             <!-- for unknown area -->
-            <!-- connect_conf_th: 0.7 -->
+            connect_conf_th: 0.7
 
             <!-- for known area -->
-            connect_conf_th: 0.6
+            <!-- connect_conf_th: 0.6 -->
 
             edge_num_th: 10
             <!-- edge_num_th: 5 -->

@@ -44,3 +44,8 @@ transform: nn.Sequential = nn.Sequential(
         # transforms.RandomErasing(0.2, scale=(0.05, 0.1), ratio=(0.33, 1.67)),
         transforms.RandomErasing(),
     )
+
+test_transform: nn.Sequential = nn.Sequential(
+        transforms.ColorJitter(
+            brightness=[0.3, 2.0], contrast=0.7, saturation=0.7, hue=0.2),  # type: ignore
+    )
